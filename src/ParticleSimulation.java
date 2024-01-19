@@ -97,7 +97,7 @@ public class ParticleSimulation {
         }
 
         public void update(int width, int height) {
-            // Movement and collision logic (same as before)
+            // Movement and collision logic 
             x += velocity * Math.cos(Math.toRadians(angle));
             y += velocity * Math.sin(Math.toRadians(angle));
 
