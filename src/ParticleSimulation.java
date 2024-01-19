@@ -98,6 +98,19 @@ public class ParticleSimulation {
 
         public void update(int width, int height) {
             // Movement and collision logic (same as before)
+            x += velocity * Math.cos(Math.toRadians(angle));
+            y += velocity * Math.sin(Math.toRadians(angle));
+
+            // Check for collision with walls and reflect the angle
+            if (x <= 0 || x >= width) {
+                angle = 180 - angle;
+            }
+            if (y <= 0 || y >= height) {
+                angle = 360 - angle;
+            }
+
+            // Normalize the angle
+            angle = (angle + 360) % 360;
         }
     }
 
