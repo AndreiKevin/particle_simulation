@@ -29,7 +29,6 @@ public class Particle {
         angle = wallAngle + angleDiff;
     }
 
-    // Getters and setters
     public double getX() { return x; }
     public double getY() { return y; }
     public double getVelocity() { return velocity; }
