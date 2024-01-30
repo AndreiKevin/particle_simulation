@@ -8,6 +8,10 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.BorderLayout;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.CountDownLatch;
+
 public class ParticleSimulator extends JFrame {
     /* UI Structure:
     JFrame (the main window, represented by the ParticleSimulator class)
@@ -32,23 +36,42 @@ public class ParticleSimulator extends JFrame {
             JTextField (y2Field)
      */
 
-    private final SimulatorPanel panel;
+    private final SimulatorPanel simulatorPanel;
+    private static ExecutorService executorService;
+    private static double lastUpdateTime;
+    private static int fps;
+    private static int frames;
 
     public ParticleSimulator() {
         super("Particle Simulator");
 
-        setSize(new Dimension(1280, 720));
+        // Maximum threads will blow up your computer
+        //executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        // Do 2 threads only
+        executorService = Executors.newFixedThreadPool(1);
+        lastUpdateTime = System.currentTimeMillis();
+
+        setSize(new Dimension(1280, 800)); // slightly bigger height for inputs
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         // SimulatorPanel is a JPanel that shows the particles and walls
-        panel = new SimulatorPanel();
-        add(panel);
+        simulatorPanel = new SimulatorPanel();
+        add(simulatorPanel);
 
         // setupUserINterface creates a JPanel with the UI components
         setupUserInterface();
 
         // Make sure all components have been added before we render the UI
         setVisible(true); 
+
+        // Start the game loop
+        gameLoop();
+    }
+
+    private void gameLoop() {
+        while (true) {
+            simulatorPanel.repaint();
+        }
     }
 
     private void setupUserInterface() {
@@ -75,8 +98,8 @@ public class ParticleSimulator extends JFrame {
                 double angle = Double.parseDouble(angleField.getText());
                 double velocity = Double.parseDouble(velocityField.getText());
                 Particle particle = new Particle(x, y, velocity, angle);
-                panel.addParticle(particle);
-                panel.repaint();
+                simulatorPanel.addParticle(particle);
+                simulatorPanel.repaint();
             }
         });
 
@@ -89,8 +112,8 @@ public class ParticleSimulator extends JFrame {
                 double x2 = Double.parseDouble(x2Field.getText());
                 double y2 = Double.parseDouble(y2Field.getText());
                 Wall wall = new Wall(x1, y1, x2, y2);
-                panel.addWall(wall);
-                panel.repaint();
+                simulatorPanel.addWall(wall);
+                simulatorPanel.repaint();
             }
         });
 
@@ -130,8 +153,8 @@ public class ParticleSimulator extends JFrame {
         public SimulatorPanel() {
             particles = new ArrayList<>();
             walls = new ArrayList<>();
-
-            addParticle(new Particle(100, 100, 100, 45));
+            // Test Particle
+            addParticle(new Particle(100, 100, 20, 45));
         }
 
         public void addParticle(Particle particle) {
@@ -145,17 +168,49 @@ public class ParticleSimulator extends JFrame {
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
-            // Update and draw particles
+
+            CountDownLatch latch = new CountDownLatch(particles.size());
+
+            // Update and draw particles using thread pool
             for (Particle particle : particles) {
-                particle.move(0.016); // Assuming 60 FPS, deltaTime ~ 1/60
-                checkWallCollision(particle);
+                executorService.submit(() -> {
+                    particle.move(0.016); // Assuming 60 FPS, deltaTime ~ 1/60
+                    // Update angle based on collision
+                    checkWallCollision(particle);
+                    latch.countDown();
+                });
+            }
+            
+            // Drawing of graphics should be done in the main thread because of Swing limitations
+            try {
+                latch.await(); // Wait till all threads are done before drawing
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();  // Preserve interrupt status
+            }
+
+            // Draw particles
+            for (Particle particle : particles) {
                 g.drawOval((int) particle.getX(), (int) particle.getY(), 10, 10);
             }
+
             // Draw walls
             for (Wall wall : walls) {
                 g.drawLine((int) wall.getX1(), (int) wall.getY1(), (int) wall.getX2(), (int) wall.getY2());
             }
-        }
+            
+            // Every render is one frame (FPS) so we add one to the frame counter
+            frames++;
+            // Get current time to compare how long it's been since the last update
+            double currentTime = System.currentTimeMillis();
+            // Update the displayed FPS every 0.5 seconds (500 milliseconds)
+            if (currentTime - lastUpdateTime >= 500) {
+                fps = (int) (frames / ((currentTime - lastUpdateTime) / 1000));
+                frames = 0;
+                lastUpdateTime = currentTime;
+            }
+            g.drawString("FPS: " + fps, 10, 20);
+            
+        } 
 
         private void checkWallCollision(Particle particle) {
             if (particle.getX() <= 0 || particle.getX() >= canvasWidth) {
@@ -165,7 +220,7 @@ public class ParticleSimulator extends JFrame {
                 particle.bounceVertical();
             }
 
-            // Check collision with walls
+            // Check collision with user made walls
             for (Wall wall : walls) {
                 if (isParticleCollidingWithWall(particle, wall)) {
                     double wallAngle = Math.atan2(wall.getY2() - wall.getY1(), wall.getX2() - wall.getX1());
