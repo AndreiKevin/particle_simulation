@@ -1,0 +1,5 @@
+Will I need to put the input handling on another thread?
+
+If a particle is added, do we have to render it at that very render cycle? Or can we wait until the next one?
+
+Is it okay if the fps slows down, the particles also slow down? or is it expected for them to jump like theyre lagging?
