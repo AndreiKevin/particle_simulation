@@ -99,7 +99,6 @@ public class ParticleSimulator extends JFrame {
                 double velocity = Double.parseDouble(velocityField.getText());
                 Particle particle = new Particle(x, y, velocity, angle);
                 simulatorPanel.addParticle(particle);
-                simulatorPanel.repaint();
             }
         });
 
@@ -113,7 +112,6 @@ public class ParticleSimulator extends JFrame {
                 double y2 = Double.parseDouble(y2Field.getText());
                 Wall wall = new Wall(x1, y1, x2, y2);
                 simulatorPanel.addWall(wall);
-                simulatorPanel.repaint();
             }
         });
 
