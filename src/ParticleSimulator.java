@@ -9,18 +9,46 @@ import java.awt.event.ActionListener;
 import java.awt.BorderLayout;
 
 public class ParticleSimulator extends JFrame {
+    /* UI Structure:
+    JFrame (the main window, represented by the ParticleSimulator class)
+        SimulatorPanel: JPanel
+        controlPanel: JPanel
+            JLabel ("X:")
+            JTextField (xPosField)
+            JLabel ("Y:")
+            JTextField (yPosField)
+            JLabel ("Angle:")
+            JTextField (angleField)
+            JLabel ("Velocity:")
+            JTextField (velocityField)
+            JButton (addParticleButton)
+            JLabel ("Wall X1:")
+            JTextField (x1Field)
+            JLabel ("Y1:")
+            JTextField (y1Field)
+            JLabel ("X2:")
+            JTextField (x2Field)
+            JLabel ("Y2:")
+            JTextField (y2Field)
+     */
 
     private final SimulatorPanel panel;
 
     public ParticleSimulator() {
-        super("Particle Physics Simulator");
-        panel = new SimulatorPanel();
-        add(panel);
+        super("Particle Simulator");
+
         setSize(new Dimension(1280, 720));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setVisible(true);
 
+        // SimulatorPanel is a JPanel that shows the particles and walls
+        panel = new SimulatorPanel();
+        add(panel);
+
+        // setupUserINterface creates a JPanel with the UI components
         setupUserInterface();
+
+        // Make sure all components have been added before we render the UI
+        setVisible(true); 
     }
 
     private void setupUserInterface() {
