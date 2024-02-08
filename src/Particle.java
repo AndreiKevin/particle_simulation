@@ -20,13 +20,29 @@ public class Particle {
         angle = 180 - angle;
     }
     
+    public void setAngle(double angle){
+        this.angle = angle;
+    }
     public void bounceVertical() {
         angle = -angle;
     }
 
     public void bounceOffWall(double wallAngle) {
-        double angleDiff = wallAngle - angle;
-        angle = wallAngle + angleDiff;
+        double wallNormalX = Math.cos(wallAngle + Math.PI / 2); 
+        double wallNormalY = Math.sin(wallAngle + Math.PI / 2);
+    
+        double dotProduct = getVelocityX() * wallNormalX + getVelocityY() * wallNormalY;
+    
+        double reflectX = getVelocityX() - 2 * dotProduct * wallNormalX;
+        double reflectY = getVelocityY() - 2 * dotProduct * wallNormalY;
+    
+        angle = Math.toDegrees(Math.atan2(reflectY, reflectX));
+        velocity = Math.sqrt(reflectX * reflectX + reflectY * reflectY);
+    }
+    
+
+    public double getAngle() {
+        return angle;
     }
 
     public double getX() { return x; }

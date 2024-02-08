@@ -216,9 +216,9 @@ public class ParticleSimulator extends JFrame {
             particles = new ArrayList<>();
             walls = new ArrayList<>();
             // Test Particle
-            addParticle(new Particle(0, 0, 75, 45));
+           // addParticle(new Particle(0, 0, 75, 45));
             // Test wall
-            addWall(new Wall(0, 0, 500, 500));
+            addWall(new Wall(100, 100, 500, 500));
             setBackground(Color.gray);
         }
 
@@ -287,24 +287,26 @@ public class ParticleSimulator extends JFrame {
         } 
 
         private void checkWallCollision(Particle particle) {
-            if (particle.getX() <= 0 || particle.getX() >= canvasWidth) {
+            double particleSize = 10;
+        
+            if (particle.getX()  <= 0 || particle.getX() + particleSize >= canvasWidth) {
                 particle.bounceHorizontal();
             }
-            if (particle.getY() <= 0 || particle.getY() >= canvasHeight) {
+            if (particle.getY() <= 0 || particle.getY() + particleSize >= canvasHeight) {
                 particle.bounceVertical();
             }
-
-            // Check collision with user made walls
+        
             for (Wall wall : walls) {
                 if (isParticleCollidingWithWall(particle, wall)) {
-                    System.out.print("True");
                     double wallAngle = Math.atan2(wall.getY2() - wall.getY1(), wall.getX2() - wall.getX1());
                     particle.bounceOffWall(wallAngle);
                 }
             }
         }
+        
 
         private boolean isParticleCollidingWithWall(Particle particle, Wall wall) {
+            double particleSize = 10;
             double x3 = wall.getX1();
             double y3 = wall.getY1();
             double x4 = wall.getX2();
@@ -316,13 +318,42 @@ public class ParticleSimulator extends JFrame {
             double y2 = y1 + particle.getVelocityY();
         
             double den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-            if (den == 0) return false; // Lines are parallel
+            if (den == 0) return false;
         
             double t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / den;
             double u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / den;
         
-            return t >= 0 && t <= 1 && u >= 0 && u <= 1;
+            return t >= 0 && t <= 1 && u >= 0 && u <= 1 && distanceToWall(x1, y1, x3, y3, x4, y4) < particleSize;
         }
+        
+        private double distanceToWall(double x, double y, double x1, double y1, double x2, double y2) {
+            double A = x - x1;
+            double B = y - y1;
+            double C = x2 - x1;
+            double D = y2 - y1;
+        
+            double dot = A * C + B * D;
+            double lenSq = C * C + D * D;
+            double param = dot / lenSq;
+        
+            double closestX, closestY;
+        
+            if (param < 0 || (x1 == x2 && y1 == y2)) {
+                closestX = x1;
+                closestY = y1;
+            } else if (param > 1) {
+                closestX = x2;
+                closestY = y2;
+            } else {
+                closestX = x1 + param * C;
+                closestY = y1 + param * D;
+            }
+        
+            double dx = x - closestX;
+            double dy = y - closestY;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+        
 
         public void addParticlesFixedVelocityAndAngle(int n, double startX, double startY, double endX, double endY, double velocity, double angle) {
             double deltaX = (endX - startX) / (n - 1);
