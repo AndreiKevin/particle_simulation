@@ -1,70 +1,37 @@
-import java.util.List;
-import java.util.ArrayList;
-
-import java.awt.Graphics;
-import java.awt.Dimension;
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.BorderLayout;
-
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.CountDownLatch;
+import java.util.List;
+import java.util.ArrayList;
 
 public class ParticleSimulator extends JFrame {
-    /* UI Structure:
-    JFrame (the main window, represented by the ParticleSimulator class)
-        SimulatorPanel: JPanel
-        controlPanel: JPanel
-            JLabel ("X:")
-            JTextField (xPosField)
-            JLabel ("Y:")
-            JTextField (yPosField)
-            JLabel ("Angle:")
-            JTextField (angleField)
-            JLabel ("Velocity:")
-            JTextField (velocityField)
-            JButton (addParticleButton)
-            JLabel ("Wall X1:")
-            JTextField (x1Field)
-            JLabel ("Y1:")
-            JTextField (y1Field)
-            JLabel ("X2:")
-            JTextField (x2Field)
-            JLabel ("Y2:")
-            JTextField (y2Field)
-     */
 
     private final SimulatorPanel simulatorPanel;
     private static ExecutorService executorService;
     private static double lastUpdateTime;
     private static int fps;
     private static int frames;
+    private JTextField wX1, wX2, wY1, wY2, numInputs, n2, n3, xStartField, yStartField, xEndField, yEndField, startAngleField, endAngleField, startVelocityField, endVelocityField, singleX, singleY, singleV, singleA;
+
+    private JComboBox<String> inputMethodComboBox;
+    private JPanel inputPanel;
 
     public ParticleSimulator() {
         super("Particle Simulator");
-
-        // Maximum threads will blow up your computer
-        //executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-        // Do 2 threads only
         executorService = Executors.newFixedThreadPool(1);
         lastUpdateTime = System.currentTimeMillis();
-
-        setSize(new Dimension(1280, 800)); // slightly bigger height for inputs
+        setSize(new Dimension(1600, 720));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        // SimulatorPanel is a JPanel that shows the particles and walls
         simulatorPanel = new SimulatorPanel();
         add(simulatorPanel);
 
-        // setupUserINterface creates a JPanel with the UI components
         setupUserInterface();
-
-        // Make sure all components have been added before we render the UI
-        setVisible(true); 
-
-        // Start the game loop
+        setVisible(true);
         gameLoop();
     }
 
@@ -75,71 +42,168 @@ public class ParticleSimulator extends JFrame {
     }
 
     private void setupUserInterface() {
-        // Particle UI components
-        JTextField xPosField = new JTextField(5);
-        JTextField yPosField = new JTextField(5);
-        JTextField angleField = new JTextField(5);
-        JTextField velocityField = new JTextField(5);
-        JButton addParticleButton = new JButton("Add Particle");
+        inputMethodComboBox = new JComboBox<>(new String[]{"Default singular particle", "Constant Velocity and Angle", "Constant Start Point and Varying Angle", "Constant Start Point and Varying Velocity", "Add wall"});
+        numInputs = new JTextField();
+        wX1 = new JTextField();
+        wX2 = new JTextField();
+        wY1 = new JTextField();
+        wY2 = new JTextField();
+        n2 = new JTextField();
+        n3 = new JTextField();
+        xStartField = new JTextField();
+        yStartField = new JTextField();
+        xEndField = new JTextField();
+        yEndField = new JTextField();
+        singleX = new JTextField();
+        singleY = new JTextField();
+        singleV = new JTextField();
+        singleA = new JTextField();
+        startAngleField = new JTextField();
+        endAngleField = new JTextField();
+        startVelocityField = new JTextField();
+        endVelocityField = new JTextField();
+        JButton addButton = new JButton("Add");
 
-        // Wall UI components
-        JTextField x1Field = new JTextField(5);
-        JTextField y1Field = new JTextField(5);
-        JTextField x2Field = new JTextField(5);
-        JTextField y2Field = new JTextField(5);
-        JButton addWallButton = new JButton("Add Wall");
+        inputPanel = new JPanel(new CardLayout());
 
-        // Event listener for add particle button
-        addParticleButton.addActionListener(new ActionListener() {
+        inputPanel.add(singleParticle(), "Default singular particle");
+        inputPanel.add(createConstantVelocityAndAnglePanel(), "Constant Velocity and Angle");
+        inputPanel.add(createConstantStartPointAndVaryingAnglePanel(), "Constant Start Point and Varying Angle");
+        inputPanel.add(createConstantStartPointAndVaryingVelocityPanel(), "Constant Start Point and Varying Velocity");
+        inputPanel.add(addWall(), "Add wall");
+
+        JPanel controlPanel = new JPanel(new BorderLayout());
+        controlPanel.add(inputMethodComboBox, BorderLayout.NORTH);
+        controlPanel.add(inputPanel, BorderLayout.CENTER);
+        controlPanel.add(addButton, BorderLayout.SOUTH);
+
+        inputMethodComboBox.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                double x = Double.parseDouble(xPosField.getText());
-                double y = Double.parseDouble(yPosField.getText());
-                double angle = Double.parseDouble(angleField.getText());
-                double velocity = Double.parseDouble(velocityField.getText());
-                Particle particle = new Particle(x, y, velocity, angle);
-                simulatorPanel.addParticle(particle);
+                updateUIComponents();
+                revalidate();
+                repaint();
             }
         });
 
-        // Event listener for add wall button
-        addWallButton.addActionListener(new ActionListener() {
+        addButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                double x1 = Double.parseDouble(x1Field.getText());
-                double y1 = Double.parseDouble(y1Field.getText());
-                double x2 = Double.parseDouble(x2Field.getText());
-                double y2 = Double.parseDouble(y2Field.getText());
-                Wall wall = new Wall(x1, y1, x2, y2);
-                simulatorPanel.addWall(wall);
+
+                String selectedMethod = (String) inputMethodComboBox.getSelectedItem();
+                switch (selectedMethod) {
+                    case "Add wall":
+                        int x1 = Integer.parseInt(wX1.getText());
+                        int x2 = Integer.parseInt(wX2.getText());
+                        int y1 = Integer.parseInt(wY1.getText());
+                        int y2 = Integer.parseInt(wY2.getText());
+                        Wall wall = new Wall(x1, y1, x2, y2);
+                        simulatorPanel.addWall(wall);
+                    break;
+                    case "Default singular particle":
+                        double X = Double.parseDouble(singleX.getText());
+                        double Y = Double.parseDouble(singleY.getText());
+                        double angle = Double.parseDouble(singleA.getText());
+                        double velocity = Double.parseDouble(singleV.getText());
+                        Particle particle = new Particle(X, Y, velocity, angle);
+                        simulatorPanel.addParticle(particle);
+                    break;
+                    case "Constant Velocity and Angle":
+                        int n = Integer.parseInt(numInputs.getText());
+                        double startX = Double.parseDouble(xStartField.getText());
+                        double startY = Double.parseDouble(yStartField.getText());
+                        double endX = Double.parseDouble(xEndField.getText());
+                        double endY = Double.parseDouble(yEndField.getText());
+                        simulatorPanel.addParticlesFixedVelocityAndAngle(n, startX, startY, endX, endY, 50, 45);
+                    break;
+                    case "Constant Start Point and Varying Angle":
+                        n = Integer.parseInt(n2.getText());
+                        double startAngle = Double.parseDouble(startAngleField.getText());
+                        double endAngle = Double.parseDouble(endAngleField.getText());
+                        simulatorPanel.addParticlesFixedStartPointAndVelocity(n, 0, 0, startAngle, endAngle, 50);
+                    break;
+                    case "Constant Start Point and Varying Velocity":
+                        n = Integer.parseInt(n3.getText());
+                        double startVelocity = Double.parseDouble(startVelocityField.getText());
+                        double endVelocity = Double.parseDouble(endVelocityField.getText());
+                        simulatorPanel.addParticlesFixedStartPointAndAngle(n, 0, 0, 45, startVelocity, endVelocity);
+                        break;
+                }
             }
         });
 
-        // Add particle components to the frame
-        JPanel controlPanel = new JPanel();
-        controlPanel.add(new JLabel("X:"));
-        controlPanel.add(xPosField);
-        controlPanel.add(new JLabel("Y:"));
-        controlPanel.add(yPosField);
-        controlPanel.add(new JLabel("Angle:"));
-        controlPanel.add(angleField);
-        controlPanel.add(new JLabel("Velocity:"));
-        controlPanel.add(velocityField);
-        controlPanel.add(addParticleButton);
+        add(controlPanel, BorderLayout.EAST);
+    }
 
-        // Add wall components to the frame
-        controlPanel.add(new JLabel("Wall X1:"));
-        controlPanel.add(x1Field);
-        controlPanel.add(new JLabel("Y1:"));
-        controlPanel.add(y1Field);
-        controlPanel.add(new JLabel("X2:"));
-        controlPanel.add(x2Field);
-        controlPanel.add(new JLabel("Y2:"));
-        controlPanel.add(y2Field);
-        controlPanel.add(addWallButton);
-        
-        // Add controlPanel to the frame
-        add(controlPanel, BorderLayout.SOUTH); 
+    private JPanel addWall(){
+        JPanel panel = new JPanel(new GridLayout(0, 2));
+        panel.add(new JLabel("X1:"));
+        panel.add(wX1);
+        panel.add(new JLabel("Y1:"));
+        panel.add(wY1);
+        panel.add(new JLabel("X2:"));
+        panel.add(wX2);
+        panel.add(new JLabel("Y2:"));
+        panel.add(wY2);
+        return panel;
+    }
+
+    private JPanel singleParticle(){
+        JPanel panel = new JPanel(new GridLayout(0, 2));
+        panel.add(new JLabel("X:"));
+        panel.add(singleX);
+        panel.add(new JLabel("Y:"));
+        panel.add(singleY);
+        panel.add(new JLabel("Velocity:"));
+        panel.add(singleV);
+        panel.add(new JLabel("Angle:"));
+        panel.add(singleA);
+        return panel;
+    }
+
+    private JPanel createConstantVelocityAndAnglePanel() {
+        JPanel panel = new JPanel(new GridLayout(0, 2));
+        panel.add(new JLabel("Number of Particles:"));
+        panel.add(numInputs);
+        panel.add(new JLabel("Start X:"));
+        panel.add(xStartField);
+        panel.add(new JLabel("Start Y:"));
+        panel.add(yStartField);
+        panel.add(new JLabel("End X:"));
+        panel.add(xEndField);
+        panel.add(new JLabel("End Y:"));
+        panel.add(yEndField);
+        return panel;
+    }
+
+    private JPanel createConstantStartPointAndVaryingAnglePanel() {
+        JPanel panel = new JPanel(new GridLayout(0, 2));
+        panel.add(new JLabel("Number of Particles:"));
+        panel.add(n2);
+        panel.add(new JLabel("Start angle:"));
+        panel.add(startAngleField);
+        panel.add(new JLabel("End angle:"));
+        panel.add(endAngleField);
+        return panel;
+    }
+
+    private JPanel createConstantStartPointAndVaryingVelocityPanel() {
+        JPanel panel = new JPanel(new GridLayout(0, 2));
+        panel.add(new JLabel("Number of Particles:"));
+        panel.add(n3);
+        panel.add(new JLabel("Start velocity:"));
+        panel.add(startVelocityField);
+        panel.add(new JLabel("End velocity:"));
+        panel.add(endVelocityField);
+        return panel;
+    }
+
+    private void updateUIComponents() {
+        String selectedMethod = (String) inputMethodComboBox.getSelectedItem();
+        CardLayout cardLayout = (CardLayout) inputPanel.getLayout();
+        cardLayout.show(inputPanel, selectedMethod);
+        revalidate();
+        repaint();
     }
 
     private static class SimulatorPanel extends JPanel {
@@ -152,7 +216,10 @@ public class ParticleSimulator extends JFrame {
             particles = new ArrayList<>();
             walls = new ArrayList<>();
             // Test Particle
-            addParticle(new Particle(100, 100, 20, 45));
+            addParticle(new Particle(0, 0, 75, 45));
+            // Test wall
+            addWall(new Wall(0, 0, 500, 500));
+            setBackground(Color.gray);
         }
 
         public void addParticle(Particle particle) {
@@ -186,15 +253,24 @@ public class ParticleSimulator extends JFrame {
                 Thread.currentThread().interrupt();  // Preserve interrupt status
             }
 
+//TODO: I changed this part so that 0,0, starts at bottom left, not 100% if correct
             // Draw particles
             for (Particle particle : particles) {
-                g.drawOval((int) particle.getX(), (int) particle.getY(), 10, 10);
+                int particleSize = 10;
+                int x = (int) particle.getX();
+                int y = getHeight() - (int) particle.getY() - particleSize; // Adjust for the bottom left corner
+                g.drawOval(x, y, particleSize, particleSize);
             }
 
             // Draw walls
             for (Wall wall : walls) {
-                g.drawLine((int) wall.getX1(), (int) wall.getY1(), (int) wall.getX2(), (int) wall.getY2());
+                int x1 = (int) wall.getX1();
+                int y1 = getHeight() - (int) wall.getY1();  // Adjust Y coordinate
+                int x2 = (int) wall.getX2();
+                int y2 = getHeight() - (int) wall.getY2();  // Adjust Y coordinate
+                g.drawLine(x1, y1, x2, y2);
             }
+
             
             // Every render is one frame (FPS) so we add one to the frame counter
             frames++;
@@ -221,6 +297,7 @@ public class ParticleSimulator extends JFrame {
             // Check collision with user made walls
             for (Wall wall : walls) {
                 if (isParticleCollidingWithWall(particle, wall)) {
+                    System.out.print("True");
                     double wallAngle = Math.atan2(wall.getY2() - wall.getY1(), wall.getX2() - wall.getX1());
                     particle.bounceOffWall(wallAngle);
                 }
@@ -278,7 +355,4 @@ public class ParticleSimulator extends JFrame {
     public static void main(String[] args) {
         new ParticleSimulator();
     }
-
-
 }
-
