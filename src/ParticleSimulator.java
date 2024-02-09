@@ -25,7 +25,7 @@ public class ParticleSimulator extends JFrame {
 
     public ParticleSimulator() {
         super("Particle Simulator");
-        executorService = Executors.newWorkStealingPool(); // Adjust pool size if necessary
+        executorService = Executors.newWorkStealingPool(); 
         lastUpdateTime = System.currentTimeMillis();
         setSize(new Dimension(1600, 720));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -38,15 +38,13 @@ public class ParticleSimulator extends JFrame {
         gameLoop();
     }
 
-    // Existing code for particle movement within the game loop
     private void gameLoop() {
         while (true) {
             updateParticles();
             repaint();
 
-            // Optional: Add a small delay to control the loop speed
             try {
-                Thread.sleep(16); // Adjust the delay as needed
+                Thread.sleep(16);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
@@ -59,7 +57,6 @@ public class ParticleSimulator extends JFrame {
             particlesCopy = new ArrayList<>(simulatorPanel.getParticles());
         }
 
-        // Update particles using thread pool
         CountDownLatch latch = new CountDownLatch(particlesCopy.size());
 
         for (Particle particle : particlesCopy) {
@@ -72,7 +69,6 @@ public class ParticleSimulator extends JFrame {
             });
         }
 
-        // Wait till all threads are done before moving to the next iteration
         try {
             latch.await();
         } catch (InterruptedException e) {
@@ -281,14 +277,11 @@ public class ParticleSimulator extends JFrame {
             Graphics offScreenGraphics = offScreenBuffer.getGraphics();
             super.paintComponent(offScreenGraphics);
     
-            // Draw particles and walls to off-screen buffer
             drawParticles(offScreenGraphics);
             drawWalls(offScreenGraphics);
     
-            // Draw the off-screen buffer to the screen
             g.drawImage(offScreenBuffer, 0, 0, this);
     
-            // Calculate and display FPS
             frames++;
             long currentTime = System.currentTimeMillis();
             if (currentTime - lastUpdateTime >= 500) {
