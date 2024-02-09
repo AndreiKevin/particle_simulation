@@ -7,22 +7,25 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.CountDownLatch;
 import java.util.List;
 import java.util.ArrayList;
+import java.awt.image.BufferedImage;
+
 
 public class ParticleSimulator extends JFrame {
 
     private final SimulatorPanel simulatorPanel;
-    private static ExecutorService executorService;
+    private final ExecutorService executorService;
     private static double lastUpdateTime;
     private static int fps;
     private static int frames;
     private JTextField wX1, wX2, wY1, wY2, numInputs, n2, n3, xStartField, yStartField, xEndField, yEndField, startAngleField, endAngleField, startVelocityField, endVelocityField, singleX, singleY, singleV, singleA;
 
     private JComboBox<String> inputMethodComboBox;
+
     private JPanel inputPanel;
 
     public ParticleSimulator() {
         super("Particle Simulator");
-        executorService = Executors.newFixedThreadPool(1);
+        executorService = Executors.newWorkStealingPool(); // Adjust pool size if necessary
         lastUpdateTime = System.currentTimeMillis();
         setSize(new Dimension(1600, 720));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -35,9 +38,45 @@ public class ParticleSimulator extends JFrame {
         gameLoop();
     }
 
+    // Existing code for particle movement within the game loop
     private void gameLoop() {
         while (true) {
-            simulatorPanel.repaint();
+            updateParticles();
+            repaint();
+
+            // Optional: Add a small delay to control the loop speed
+            try {
+                Thread.sleep(16); // Adjust the delay as needed
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    private void updateParticles() {
+        List<Particle> particlesCopy;
+        synchronized (simulatorPanel) {
+            particlesCopy = new ArrayList<>(simulatorPanel.getParticles());
+        }
+
+        // Update particles using thread pool
+        CountDownLatch latch = new CountDownLatch(particlesCopy.size());
+
+        for (Particle particle : particlesCopy) {
+            executorService.submit(() -> {
+                synchronized (simulatorPanel) {
+                    particle.move(0.016); // Assuming 60 FPS, deltaTime ~ 1/60
+                    simulatorPanel.checkWallCollision(particle);
+                }
+                latch.countDown();
+            });
+        }
+
+        // Wait till all threads are done before moving to the next iteration
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -99,7 +138,7 @@ public class ParticleSimulator extends JFrame {
                         int y2 = Integer.parseInt(wY2.getText());
                         Wall wall = new Wall(x1, y1, x2, y2);
                         simulatorPanel.addWall(wall);
-                    break;
+                        break;
                     case "Default singular particle":
                         double X = Double.parseDouble(singleX.getText());
                         double Y = Double.parseDouble(singleY.getText());
@@ -107,7 +146,7 @@ public class ParticleSimulator extends JFrame {
                         double velocity = Double.parseDouble(singleV.getText());
                         Particle particle = new Particle(X, Y, velocity, angle);
                         simulatorPanel.addParticle(particle);
-                    break;
+                        break;
                     case "Constant Velocity and Angle":
                         int n = Integer.parseInt(numInputs.getText());
                         double startX = Double.parseDouble(xStartField.getText());
@@ -115,13 +154,13 @@ public class ParticleSimulator extends JFrame {
                         double endX = Double.parseDouble(xEndField.getText());
                         double endY = Double.parseDouble(yEndField.getText());
                         simulatorPanel.addParticlesFixedVelocityAndAngle(n, startX, startY, endX, endY, 50, 45);
-                    break;
+                        break;
                     case "Constant Start Point and Varying Angle":
                         n = Integer.parseInt(n2.getText());
                         double startAngle = Double.parseDouble(startAngleField.getText());
                         double endAngle = Double.parseDouble(endAngleField.getText());
-                        simulatorPanel.addParticlesFixedStartPointAndVelocity(n, 0, 0, startAngle, endAngle, 50);
-                    break;
+                        simulatorPanel.addParticlesFixedStartPointAndVelocity(n, 800, 300, startAngle, endAngle, 50);
+                        break;
                     case "Constant Start Point and Varying Velocity":
                         n = Integer.parseInt(n3.getText());
                         double startVelocity = Double.parseDouble(startVelocityField.getText());
@@ -135,7 +174,7 @@ public class ParticleSimulator extends JFrame {
         add(controlPanel, BorderLayout.EAST);
     }
 
-    private JPanel addWall(){
+    private JPanel addWall() {
         JPanel panel = new JPanel(new GridLayout(0, 2));
         panel.add(new JLabel("X1:"));
         panel.add(wX1);
@@ -148,7 +187,7 @@ public class ParticleSimulator extends JFrame {
         return panel;
     }
 
-    private JPanel singleParticle(){
+    private JPanel singleParticle() {
         JPanel panel = new JPanel(new GridLayout(0, 2));
         panel.add(new JLabel("X:"));
         panel.add(singleX);
@@ -206,96 +245,89 @@ public class ParticleSimulator extends JFrame {
         repaint();
     }
 
-    private static class SimulatorPanel extends JPanel {
+    private class SimulatorPanel extends JPanel {
         private List<Particle> particles;
         private List<Wall> walls;
         private final int canvasWidth = 1280;
         private final int canvasHeight = 720;
-
+        private BufferedImage offScreenBuffer;
+    
         public SimulatorPanel() {
             particles = new ArrayList<>();
             walls = new ArrayList<>();
+            offScreenBuffer = new BufferedImage(canvasWidth, canvasHeight, BufferedImage.TYPE_INT_ARGB);
+            setBackground(Color.gray);
+    
             // Test Particle
-           // addParticle(new Particle(0, 0, 75, 45));
+            // addParticle(new Particle(0, 0, 75, 45));
             // Test wall
             addWall(new Wall(100, 100, 500, 500));
-            setBackground(Color.gray);
         }
-
+    
+        public List<Particle> getParticles() {
+            return particles;
+        }
+    
         public void addParticle(Particle particle) {
             particles.add(particle);
         }
-
+    
         public void addWall(Wall wall) {
             walls.add(wall);
         }
-
+    
         @Override
         protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-
-            CountDownLatch latch = new CountDownLatch(particles.size());
-
-            // Update and draw particles using thread pool
-            for (Particle particle : particles) {
-                executorService.submit(() -> {
-                    particle.move(0.016); // Assuming 60 FPS, deltaTime ~ 1/60
-                    // Update angle based on collision
-                    checkWallCollision(particle);
-                    latch.countDown();
-                });
-            }
-            
-            // Drawing of graphics should be done in the main thread because of Swing limitations
-            try {
-                latch.await(); // Wait till all threads are done before drawing
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();  // Preserve interrupt status
-            }
-
-//TODO: I changed this part so that 0,0, starts at bottom left, not 100% if correct
-            // Draw particles
-            for (Particle particle : particles) {
-                int particleSize = 10;
-                int x = (int) particle.getX();
-                int y = getHeight() - (int) particle.getY() - particleSize; // Adjust for the bottom left corner
-                g.drawOval(x, y, particleSize, particleSize);
-            }
-
-            // Draw walls
-            for (Wall wall : walls) {
-                int x1 = (int) wall.getX1();
-                int y1 = getHeight() - (int) wall.getY1();  // Adjust Y coordinate
-                int x2 = (int) wall.getX2();
-                int y2 = getHeight() - (int) wall.getY2();  // Adjust Y coordinate
-                g.drawLine(x1, y1, x2, y2);
-            }
-
-            
-            // Every render is one frame (FPS) so we add one to the frame counter
+            Graphics offScreenGraphics = offScreenBuffer.getGraphics();
+            super.paintComponent(offScreenGraphics);
+    
+            // Draw particles and walls to off-screen buffer
+            drawParticles(offScreenGraphics);
+            drawWalls(offScreenGraphics);
+    
+            // Draw the off-screen buffer to the screen
+            g.drawImage(offScreenBuffer, 0, 0, this);
+    
+            // Calculate and display FPS
             frames++;
-            // Get current time to compare how long it's been since the last update
-            double currentTime = System.currentTimeMillis();
-            // Update the displayed FPS every 0.5 seconds (500 milliseconds)
+            long currentTime = System.currentTimeMillis();
             if (currentTime - lastUpdateTime >= 500) {
-                fps = (int) (frames / ((currentTime - lastUpdateTime) / 1000));
+                fps = (int) (frames / ((currentTime - lastUpdateTime) / 1000.0));
                 frames = 0;
                 lastUpdateTime = currentTime;
             }
             g.drawString("FPS: " + fps, 10, 20);
-            
-        } 
+        }
+    
+        private void drawParticles(Graphics g) {
+            for (Particle particle : particles) {
+                int particleSize = 10;
+                int x = (int) particle.getX();
+                int y = getHeight() - (int) particle.getY() - particleSize;
+                g.drawOval(x, y, particleSize, particleSize);
+            }
+        }
+    
+        private void drawWalls(Graphics g) {
+            for (Wall wall : walls) {
+                int x1 = (int) wall.getX1();
+                int y1 = getHeight() - (int) wall.getY1();
+                int x2 = (int) wall.getX2();
+                int y2 = getHeight() - (int) wall.getY2();
+                g.drawLine(x1, y1, x2, y2);
+            }
+        }
 
         private void checkWallCollision(Particle particle) {
             double particleSize = 10;
-        
-            if (particle.getX()  <= 0 || particle.getX() + particleSize >= canvasWidth) {
+
+            if (particle.getX() <= 0 || particle.getX() + particleSize >= canvasWidth) {
                 particle.bounceHorizontal();
             }
             if (particle.getY() <= 0 || particle.getY() + particleSize >= canvasHeight) {
                 particle.bounceVertical();
             }
-        
+
             for (Wall wall : walls) {
                 if (isParticleCollidingWithWall(particle, wall)) {
                     double wallAngle = Math.atan2(wall.getY2() - wall.getY1(), wall.getX2() - wall.getX1());
@@ -303,7 +335,6 @@ public class ParticleSimulator extends JFrame {
                 }
             }
         }
-        
 
         private boolean isParticleCollidingWithWall(Particle particle, Wall wall) {
             double particleSize = 10;
@@ -311,33 +342,33 @@ public class ParticleSimulator extends JFrame {
             double y3 = wall.getY1();
             double x4 = wall.getX2();
             double y4 = wall.getY2();
-        
+
             double x1 = particle.getX();
             double y1 = particle.getY();
             double x2 = x1 + particle.getVelocityX();
             double y2 = y1 + particle.getVelocityY();
-        
+
             double den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
             if (den == 0) return false;
-        
+
             double t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / den;
             double u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / den;
-        
+
             return t >= 0 && t <= 1 && u >= 0 && u <= 1 && distanceToWall(x1, y1, x3, y3, x4, y4) < particleSize;
         }
-        
+
         private double distanceToWall(double x, double y, double x1, double y1, double x2, double y2) {
             double A = x - x1;
             double B = y - y1;
             double C = x2 - x1;
             double D = y2 - y1;
-        
+
             double dot = A * C + B * D;
             double lenSq = C * C + D * D;
             double param = dot / lenSq;
-        
+
             double closestX, closestY;
-        
+
             if (param < 0 || (x1 == x2 && y1 == y2)) {
                 closestX = x1;
                 closestY = y1;
@@ -348,12 +379,11 @@ public class ParticleSimulator extends JFrame {
                 closestX = x1 + param * C;
                 closestY = y1 + param * D;
             }
-        
+
             double dx = x - closestX;
             double dy = y - closestY;
             return Math.sqrt(dx * dx + dy * dy);
         }
-        
 
         public void addParticlesFixedVelocityAndAngle(int n, double startX, double startY, double endX, double endY, double velocity, double angle) {
             double deltaX = (endX - startX) / (n - 1);
@@ -380,7 +410,6 @@ public class ParticleSimulator extends JFrame {
                 addParticle(new Particle(startX, startY, velocity, angle));
             }
         }
-
     }
 
     public static void main(String[] args) {
