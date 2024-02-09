@@ -55,19 +55,15 @@ public class ParticleSimulator extends JFrame {
 
     private void updateParticles() {
         List<Particle> particlesCopy;
-        synchronized (simulatorPanel) {
-            particlesCopy = new ArrayList<>(simulatorPanel.getParticles());
-        }
+        particlesCopy = new ArrayList<>(simulatorPanel.getParticles());
 
         // Update particles using thread pool
         CountDownLatch latch = new CountDownLatch(particlesCopy.size());
 
         for (Particle particle : particlesCopy) {
             executorService.submit(() -> {
-                synchronized (simulatorPanel) {
-                    particle.move(0.016); // Assuming 60 FPS, deltaTime ~ 1/60
-                    simulatorPanel.checkWallCollision(particle);
-                }
+                particle.move(0.016); // Assuming 60 FPS, deltaTime ~ 1/60
+                simulatorPanel.checkWallCollision(particle);
                 latch.countDown();
             });
         }
