@@ -22,6 +22,7 @@ public class ParticleSimulator extends JFrame {
 
     public ParticleSimulator() {
         super("Particle Simulator");
+        //executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         executorService = Executors.newFixedThreadPool(1);
         lastUpdateTime = System.currentTimeMillis();
         setSize(new Dimension(1600, 720));
