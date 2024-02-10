@@ -101,7 +101,7 @@ public class ParticleSimulator extends JFrame {
 
         inputPanel = new JPanel(new CardLayout());
 
-        inputPanel.add(singleParticle(), "Default singular particle");
+        inputPanel.add(singleParticle(), "Add one particle");
         inputPanel.add(createConstantVelocityAndAnglePanel(), "Constant Velocity and Angle");
         inputPanel.add(createConstantStartPointAndVaryingAnglePanel(), "Constant Start Point and Varying Angle");
         inputPanel.add(createConstantStartPointAndVaryingVelocityPanel(), "Constant Start Point and Varying Velocity");
