@@ -19,7 +19,7 @@ public class ParticleSimulator extends JFrame {
     private static int frames;
     private JTextField wX1, wX2, wY1, wY2, numInputs, n2, n3, xStartField, yStartField, xEndField, yEndField, startAngleField, endAngleField, startVelocityField, endVelocityField, singleX, singleY, singleV, singleA;
 
-    private JComboBox<String> inputMethodComboBox;
+    private JComboBox<String> dropdownBox;
 
     private JPanel inputPanel;
 
@@ -86,7 +86,7 @@ public class ParticleSimulator extends JFrame {
     }
 
     private void setupUserInterface() {
-        inputMethodComboBox = new JComboBox<>(new String[]{"Default singular particle", "Const Velocity + Angle", "Const Point + Varying Angle", "Const Start + Varying Velocity", "Add wall"});
+        dropdownBox = new JComboBox<>(new String[]{"Default singular particle", "Const Velocity + Angle", "Const Start + Varying Angle", "Const Start + Varying Velocity", "Add wall"});
         numInputs = new JTextField();
         wX1 = new JTextField();
         wX2 = new JTextField();
@@ -149,7 +149,7 @@ public class ParticleSimulator extends JFrame {
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.weighty = 1.0; 
-        controlPanel.add(inputMethodComboBox, gbc);
+        controlPanel.add(dropdownBox, gbc);
     
         gbc.gridy = 1;
         controlPanel.add(inputPanel, gbc);
@@ -157,7 +157,7 @@ public class ParticleSimulator extends JFrame {
         gbc.gridy = 2;
         controlPanel.add(buttonPanel, gbc);
     
-        inputMethodComboBox.addActionListener(new ActionListener() {
+        dropdownBox.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 updateUIComponents();
@@ -170,7 +170,7 @@ public class ParticleSimulator extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
 
-                String selectedMethod = (String) inputMethodComboBox.getSelectedItem();
+                String selectedMethod = (String) dropdownBox.getSelectedItem();
                 switch (selectedMethod) {
                     case "Add wall":
                         int x1 = Integer.parseInt(wX1.getText());
@@ -180,7 +180,7 @@ public class ParticleSimulator extends JFrame {
                         Wall wall = new Wall(x1, y1, x2, y2);
                         simulatorPanel.addWall(wall);
                         break;
-                    case "Add one particle":
+                    case "Default singular particle":
                         double X = Double.parseDouble(singleX.getText());
                         double Y = Double.parseDouble(singleY.getText());
                         double angle = Double.parseDouble(singleA.getText());
@@ -188,7 +188,7 @@ public class ParticleSimulator extends JFrame {
                         Particle particle = new Particle(X, Y, velocity, angle);
                         simulatorPanel.addParticle(particle);
                         break;
-                    case "Constant Velocity and Angle":
+                    case "Const Velocity + Angle":
                         int n = Integer.parseInt(numInputs.getText());
                         double startX = Double.parseDouble(xStartField.getText());
                         double startY = Double.parseDouble(yStartField.getText());
@@ -196,13 +196,13 @@ public class ParticleSimulator extends JFrame {
                         double endY = Double.parseDouble(yEndField.getText());
                         simulatorPanel.addParticlesFixedVelocityAndAngle(n, startX, startY, endX, endY, 50, 45);
                         break;
-                    case "Constant Start Point and Varying Angle":
+                    case "Const Start + Varying Angle":
                         n = Integer.parseInt(n2.getText());
                         double startAngle = Double.parseDouble(startAngleField.getText());
                         double endAngle = Double.parseDouble(endAngleField.getText());
                         simulatorPanel.addParticlesFixedStartPointAndVelocity(n, 800, 300, startAngle, endAngle, 50);
                         break;
-                    case "Constant Start Point and Varying Velocity":
+                    case "Const Start + Varying Velocity":
                         n = Integer.parseInt(n3.getText());
                         double startVelocity = Double.parseDouble(startVelocityField.getText());
                         double endVelocity = Double.parseDouble(endVelocityField.getText());
@@ -302,7 +302,7 @@ public class ParticleSimulator extends JFrame {
     }
 
     private void updateUIComponents() {
-        String selectedMethod = (String) inputMethodComboBox.getSelectedItem();
+        String selectedMethod = (String) dropdownBox.getSelectedItem();
         CardLayout cardLayout = (CardLayout) inputPanel.getLayout();
         cardLayout.show(inputPanel, selectedMethod);
         revalidate();
