@@ -53,18 +53,14 @@ public class ParticleSimulator extends JFrame {
 
     private void updateParticles() {
         List<Particle> particlesCopy;
-        synchronized (simulatorPanel) {
-            particlesCopy = new ArrayList<>(simulatorPanel.getParticles());
-        }
+        particlesCopy = new ArrayList<>(simulatorPanel.getParticles());
 
         CountDownLatch latch = new CountDownLatch(particlesCopy.size());
 
         for (Particle particle : particlesCopy) {
             executorService.submit(() -> {
-                synchronized (simulatorPanel) {
-                    particle.move(0.016); // Assuming 60 FPS, deltaTime ~ 1/60
-                    simulatorPanel.checkWallCollision(particle);
-                }
+                particle.move(0.016); // Assuming 60 FPS, deltaTime ~ 1/60
+                simulatorPanel.checkWallCollision(particle);
                 latch.countDown();
             });
         }
@@ -77,7 +73,7 @@ public class ParticleSimulator extends JFrame {
     }
 
     private void setupUserInterface() {
-        inputMethodComboBox = new JComboBox<>(new String[]{"Default singular particle", "Constant Velocity and Angle", "Constant Start Point and Varying Angle", "Constant Start Point and Varying Velocity", "Add wall"});
+        inputMethodComboBox = new JComboBox<>(new String[]{"Add one particle", "Constant Velocity and Angle", "Constant Start Point and Varying Angle", "Constant Start Point and Varying Velocity", "Add wall"});
         numInputs = new JTextField();
         wX1 = new JTextField();
         wX2 = new JTextField();
@@ -101,7 +97,7 @@ public class ParticleSimulator extends JFrame {
 
         inputPanel = new JPanel(new CardLayout());
 
-        inputPanel.add(singleParticle(), "Default singular particle");
+        inputPanel.add(singleParticle(), "Add one particle");
         inputPanel.add(createConstantVelocityAndAnglePanel(), "Constant Velocity and Angle");
         inputPanel.add(createConstantStartPointAndVaryingAnglePanel(), "Constant Start Point and Varying Angle");
         inputPanel.add(createConstantStartPointAndVaryingVelocityPanel(), "Constant Start Point and Varying Velocity");
@@ -257,7 +253,7 @@ public class ParticleSimulator extends JFrame {
             // Test Particle
             // addParticle(new Particle(0, 0, 75, 45));
             // Test wall
-            addWall(new Wall(100, 100, 500, 500));
+            addWall(new Wall(200, 100, 500, 500));
         }
     
         public List<Particle> getParticles() {
