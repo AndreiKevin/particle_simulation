@@ -77,7 +77,7 @@ public class ParticleSimulator extends JFrame {
     }
 
     private void setupUserInterface() {
-        inputMethodComboBox = new JComboBox<>(new String[]{"Default singular particle", "Constant Velocity and Angle", "Constant Start Point and Varying Angle", "Constant Start Point and Varying Velocity", "Add wall"});
+        inputMethodComboBox = new JComboBox<>(new String[]{"Add one particle", "Constant Velocity and Angle", "Constant Start Point and Varying Angle", "Constant Start Point and Varying Velocity", "Add wall"});
         numInputs = new JTextField();
         wX1 = new JTextField();
         wX2 = new JTextField();
