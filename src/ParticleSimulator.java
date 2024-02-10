@@ -46,7 +46,7 @@ public class ParticleSimulator extends JFrame {
 
             // Optional: Add a small delay to control the loop speed
             try {
-                Thread.sleep(16); // Adjust the delay as needed
+                Thread.sleep(13); // Adjust the delay as needed
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
@@ -252,12 +252,14 @@ public class ParticleSimulator extends JFrame {
             particles = new ArrayList<>();
             walls = new ArrayList<>();
             offScreenBuffer = new BufferedImage(canvasWidth, canvasHeight, BufferedImage.TYPE_INT_ARGB);
-            setBackground(Color.gray);
+            Graphics2D g2d = offScreenBuffer.createGraphics();
+            g2d.setColor(Color.WHITE);
+            g2d.fillRect(0, 0, canvasWidth, canvasHeight);
     
             // Test Particle
             // addParticle(new Particle(0, 0, 75, 45));
             // Test wall
-            addWall(new Wall(100, 100, 500, 500));
+            addWall(new Wall(200, 100, 500, 500));
         }
     
         public List<Particle> getParticles() {
