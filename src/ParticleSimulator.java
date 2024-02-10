@@ -252,9 +252,7 @@ public class ParticleSimulator extends JFrame {
             particles = new ArrayList<>();
             walls = new ArrayList<>();
             offScreenBuffer = new BufferedImage(canvasWidth, canvasHeight, BufferedImage.TYPE_INT_ARGB);
-            Graphics2D g2d = offScreenBuffer.createGraphics();
-            g2d.setColor(Color.WHITE);
-            g2d.fillRect(0, 0, canvasWidth, canvasHeight);
+            setBackground(Color.gray);
     
             // Test Particle
             // addParticle(new Particle(0, 0, 75, 45));
