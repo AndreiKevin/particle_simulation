@@ -180,7 +180,7 @@ public class ParticleSimulator extends JFrame {
                         Wall wall = new Wall(x1, y1, x2, y2);
                         simulatorPanel.addWall(wall);
                         break;
-                    case "Default singular particle":
+                    case "Add one particle":
                         double X = Double.parseDouble(singleX.getText());
                         double Y = Double.parseDouble(singleY.getText());
                         double angle = Double.parseDouble(singleA.getText());
@@ -260,6 +260,7 @@ public class ParticleSimulator extends JFrame {
         panel.add(singleV);
         panel.add(new JLabel("Angle:"));
         panel.add(singleA);
+
         return panel;
     }
 
