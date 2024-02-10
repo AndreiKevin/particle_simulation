@@ -25,46 +25,59 @@ public class ParticleSimulator extends JFrame {
 
     public ParticleSimulator() {
         super("Particle Simulator");
-        executorService = Executors.newWorkStealingPool(); 
-        lastUpdateTime = System.currentTimeMillis();
-        setSize(new Dimension(1600, 720));
+        executorService = Executors.newWorkStealingPool();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
         simulatorPanel = new SimulatorPanel();
+        simulatorPanel.setPreferredSize(new Dimension(1280, 720));
         add(simulatorPanel);
-
         setupUserInterface();
+        pack();
         setVisible(true);
         gameLoop();
     }
+    
 
     private void gameLoop() {
+        final double targetFPS = 60.0;
+        final double targetFrameTime = 1.0 / targetFPS;
+        long elapsedTime, sleepTime;
+    
         while (true) {
+            long startTime = System.nanoTime();
             updateParticles();
             repaint();
-
-            try {
-                Thread.sleep(16);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+    
+            elapsedTime = System.nanoTime() - startTime;
+            sleepTime = (long) ((targetFrameTime - elapsedTime / 1e9) * 1000);
+    
+            if (sleepTime > 0) {
+                try {
+                    Thread.sleep(sleepTime);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
             }
         }
     }
+    
 
     private void updateParticles() {
         List<Particle> particlesCopy;
-        particlesCopy = new ArrayList<>(simulatorPanel.getParticles());
+        synchronized (simulatorPanel) {
+            particlesCopy = new ArrayList<>(simulatorPanel.getParticles());
+        }
 
         CountDownLatch latch = new CountDownLatch(particlesCopy.size());
 
         for (Particle particle : particlesCopy) {
             executorService.submit(() -> {
-                particle.move(0.016); // Assuming 60 FPS, deltaTime ~ 1/60
-                simulatorPanel.checkWallCollision(particle);
+                synchronized (simulatorPanel) {
+                    particle.move(0.016);
+                    simulatorPanel.checkWallCollision(particle);
+                }
                 latch.countDown();
             });
         }
-
         try {
             latch.await();
         } catch (InterruptedException e) {
@@ -73,7 +86,7 @@ public class ParticleSimulator extends JFrame {
     }
 
     private void setupUserInterface() {
-        inputMethodComboBox = new JComboBox<>(new String[]{"Add one particle", "Constant Velocity and Angle", "Constant Start Point and Varying Angle", "Constant Start Point and Varying Velocity", "Add wall"});
+        inputMethodComboBox = new JComboBox<>(new String[]{"Default singular particle", "Const Velocity + Angle", "Const Point + Varying Angle", "Const Start + Varying Velocity", "Add wall"});
         numInputs = new JTextField();
         wX1 = new JTextField();
         wX2 = new JTextField();
@@ -96,18 +109,54 @@ public class ParticleSimulator extends JFrame {
         JButton addButton = new JButton("Add");
 
         inputPanel = new JPanel(new CardLayout());
-
-        inputPanel.add(singleParticle(), "Add one particle");
-        inputPanel.add(createConstantVelocityAndAnglePanel(), "Constant Velocity and Angle");
-        inputPanel.add(createConstantStartPointAndVaryingAnglePanel(), "Constant Start Point and Varying Angle");
-        inputPanel.add(createConstantStartPointAndVaryingVelocityPanel(), "Constant Start Point and Varying Velocity");
+        inputPanel.add(singleParticle(), "Default singular particle");
+        inputPanel.add(createConstantVelocityAndAnglePanel(), "Const Velocity + Angle");
+        inputPanel.add(createConstantStartPointAndVaryingAnglePanel(), "Const Start + Varying Angle");
+        inputPanel.add(createConstantStartPointAndVaryingVelocityPanel(), "Const Start + Varying Velocity");
         inputPanel.add(addWall(), "Add wall");
+    
+        JButton clearParticlesButton = new JButton("Clear Particles");
+        clearParticlesButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                clearParticles();
+            }
+        });
 
-        JPanel controlPanel = new JPanel(new BorderLayout());
-        controlPanel.add(inputMethodComboBox, BorderLayout.NORTH);
-        controlPanel.add(inputPanel, BorderLayout.CENTER);
-        controlPanel.add(addButton, BorderLayout.SOUTH);
+        JButton clearWalls = new JButton("Clear Walls");
+        clearWalls.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                clearWalls();
+            }
+        });
+    
+        JPanel clearPanel = new JPanel();
+        clearPanel.setLayout(new GridLayout(1, 2));
+        clearPanel.add(clearParticlesButton);
+        clearPanel.add(clearWalls);
 
+        JPanel addPanel = new JPanel();
+        addPanel.add(addButton);
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new GridLayout(2, 2)); // Use GridLayout to arrange the two button panels vertically
+        buttonPanel.add(clearPanel);
+        buttonPanel.add(addPanel);
+    
+        JPanel controlPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weighty = 1.0; 
+        controlPanel.add(inputMethodComboBox, gbc);
+    
+        gbc.gridy = 1;
+        controlPanel.add(inputPanel, gbc);
+    
+        gbc.gridy = 2;
+        controlPanel.add(buttonPanel, gbc);
+    
         inputMethodComboBox.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -116,7 +165,7 @@ public class ParticleSimulator extends JFrame {
                 repaint();
             }
         });
-
+    
         addButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -163,7 +212,29 @@ public class ParticleSimulator extends JFrame {
             }
         });
 
-        add(controlPanel, BorderLayout.EAST);
+        JFrame controlFrame = new JFrame("Control Panel");
+        controlFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        controlFrame.add(controlPanel);
+        controlFrame.setPreferredSize(new Dimension(250, 300));
+        controlFrame.pack();
+    
+        controlFrame.setLocation(1290, 300);
+    
+        controlFrame.setVisible(true);
+    }
+
+    private void clearParticles() {
+        synchronized (simulatorPanel) {
+            simulatorPanel.getParticles().clear();
+        }
+        simulatorPanel.repaint();
+    }
+
+    private void clearWalls() {
+        synchronized (simulatorPanel) {
+            simulatorPanel.getWalls().clear();
+        }
+        simulatorPanel.repaint();
     }
 
     private JPanel addWall() {
@@ -253,7 +324,8 @@ public class ParticleSimulator extends JFrame {
             // Test Particle
             // addParticle(new Particle(0, 0, 75, 45));
             // Test wall
-            addWall(new Wall(200, 100, 500, 500));
+            addWall(new Wall(100, 100, 500, 500));
+            //addWall(new Wall(0, 685, 1280, 685));
         }
     
         public List<Particle> getParticles() {
@@ -266,6 +338,10 @@ public class ParticleSimulator extends JFrame {
     
         public void addWall(Wall wall) {
             walls.add(wall);
+        }
+
+        public List<Wall> getWalls() {
+            return walls;
         }
     
         @Override
@@ -308,7 +384,7 @@ public class ParticleSimulator extends JFrame {
         }
 
         private void checkWallCollision(Particle particle) {
-            double particleSize = 10;
+            double particleSize = 8;
 
             if (particle.getX() <= 0 || particle.getX() + particleSize >= canvasWidth) {
                 particle.bounceHorizontal();
@@ -326,7 +402,7 @@ public class ParticleSimulator extends JFrame {
         }
 
         private boolean isParticleCollidingWithWall(Particle particle, Wall wall) {
-            double particleSize = 10;
+            double particleSize = 8;
             double x3 = wall.getX1();
             double y3 = wall.getY1();
             double x4 = wall.getX2();
@@ -337,36 +413,36 @@ public class ParticleSimulator extends JFrame {
             double x2 = x1 + particle.getVelocityX();
             double y2 = y1 + particle.getVelocityY();
 
-            double den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-            if (den == 0) return false;
+            double temp = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+            if (temp == 0) return false;
 
-            double t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / den;
-            double u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / den;
+            double t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / temp;
+            double u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / temp;
 
             return t >= 0 && t <= 1 && u >= 0 && u <= 1 && distanceToWall(x1, y1, x3, y3, x4, y4) < particleSize;
         }
 
         private double distanceToWall(double x, double y, double x1, double y1, double x2, double y2) {
-            double A = x - x1;
-            double B = y - y1;
-            double C = x2 - x1;
-            double D = y2 - y1;
+            double a = x - x1;
+            double b = y - y1;
+            double c = x2 - x1;
+            double d = y2 - y1;
 
-            double dot = A * C + B * D;
-            double lenSq = C * C + D * D;
-            double param = dot / lenSq;
+            double dot = a * c + b * d;
+            double t1 = c * c + d * d;
+            double t2 = dot / t1;
 
             double closestX, closestY;
 
-            if (param < 0 || (x1 == x2 && y1 == y2)) {
+            if (t2 < 0 || (x1 == x2 && y1 == y2)) {
                 closestX = x1;
                 closestY = y1;
-            } else if (param > 1) {
+            } else if (t2 > 1) {
                 closestX = x2;
                 closestY = y2;
             } else {
-                closestX = x1 + param * C;
-                closestY = y1 + param * D;
+                closestX = x1 + t2 * c;
+                closestY = y1 + t2 * d;
             }
 
             double dx = x - closestX;
