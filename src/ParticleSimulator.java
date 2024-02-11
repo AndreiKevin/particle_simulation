@@ -218,7 +218,7 @@ public class ParticleSimulator extends JFrame {
         JFrame controlFrame = new JFrame("Control Panel");
         controlFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         controlFrame.add(controlPanel);
-        controlFrame.setPreferredSize(new Dimension(280, 300));
+        controlFrame.setPreferredSize(new Dimension(285, 280));
         controlFrame.pack();
     
         controlFrame.setLocation(1290, 300);
