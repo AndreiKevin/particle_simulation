@@ -325,7 +325,7 @@ public class ParticleSimulator extends JFrame {
             // Test Particle
             // addParticle(new Particle(0, 0, 75, 45));
             // Test wall
-            addWall(new Wall(100, 100, 500, 500));
+            addWall(new Wall(100, 600, 800, 100));
             //addWall(new Wall(0, 685, 1280, 685));
         }
     
