@@ -41,7 +41,7 @@ public class ParticleSimulator extends JFrame {
     
 
     private void gameLoop(double deltaTime, double particleSize) {
-        final double targetFPS = 60.0;
+        final double targetFPS = 80.0;
         final double targetFrameTime = 1.0 / targetFPS;
         long elapsedTime, sleepTime;
     
