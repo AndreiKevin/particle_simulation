@@ -1,4 +1,5 @@
 import javax.swing.*;
+
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -133,19 +134,19 @@ public class ParticleSimulator extends JFrame {
             }
         });
     
+        JPanel addPanel = new JPanel();
+        addPanel.add(addButton);
+
         JPanel clearPanel = new JPanel();
         clearPanel.setLayout(new GridLayout(1, 2));
         clearPanel.add(clearParticlesButton);
         clearPanel.add(clearWalls);
 
-        JPanel addPanel = new JPanel();
-        addPanel.add(addButton);
-
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new GridLayout(2, 2)); // Use GridLayout to arrange the two button panels vertically
-        buttonPanel.add(clearPanel);
         buttonPanel.add(addPanel);
-    
+        buttonPanel.add(clearPanel);
+        
         JPanel controlPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
@@ -217,7 +218,7 @@ public class ParticleSimulator extends JFrame {
         JFrame controlFrame = new JFrame("Control Panel");
         controlFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         controlFrame.add(controlPanel);
-        controlFrame.setPreferredSize(new Dimension(250, 300));
+        controlFrame.setPreferredSize(new Dimension(280, 300));
         controlFrame.pack();
     
         controlFrame.setLocation(1290, 300);
