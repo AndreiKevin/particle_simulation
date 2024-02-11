@@ -65,12 +65,9 @@ public class ParticleSimulator extends JFrame {
     
 
     private void updateParticles(double deltaTime, double particleSize) {
-        List<Particle> particlesCopy;
-        particlesCopy = new ArrayList<>(simulatorPanel.getParticles());
+        CountDownLatch latch = new CountDownLatch(simulatorPanel.getParticles().size());
 
-        CountDownLatch latch = new CountDownLatch(particlesCopy.size());
-
-        for (Particle particle : particlesCopy) {
+        for (Particle particle : simulatorPanel.getParticles()) {
             executorService.submit(() -> {
                 particle.move(deltaTime);
                 simulatorPanel.checkWallCollision(particle, deltaTime, particleSize);
