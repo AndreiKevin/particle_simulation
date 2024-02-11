@@ -74,8 +74,8 @@ public class ParticleSimulator extends JFrame {
         for (Particle particle : particlesCopy) {
             executorService.submit(() -> {
                 synchronized (simulatorPanel) {
-                    simulatorPanel.checkWallCollision(particle, deltaTime, particleSize);
                     particle.move(deltaTime);
+                    simulatorPanel.checkWallCollision(particle, deltaTime, particleSize);
                 }
                 latch.countDown();
             });
