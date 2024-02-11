@@ -421,10 +421,7 @@ public class ParticleSimulator extends JFrame {
             double u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / temp;
         
             boolean isColliding = t >= 0 && t <= 1 && u >= 0 && u <= 1;
-            boolean isCloseToWall = distanceToWall(x1, y1, x3, y3, x4, y4) < particleSize;
-        
-            //System.out.println("isColliding: " + isColliding);
-        
+            
             return isColliding;
         }
 
