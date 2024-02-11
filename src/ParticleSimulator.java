@@ -25,26 +25,27 @@ public class ParticleSimulator extends JFrame {
 
     public ParticleSimulator() {
         super("Particle Simulator");
+        final double deltaTime = 0.016;
         executorService = Executors.newWorkStealingPool();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        simulatorPanel = new SimulatorPanel();
+        simulatorPanel = new SimulatorPanel(deltaTime);
         simulatorPanel.setPreferredSize(new Dimension(1280, 720));
         add(simulatorPanel);
         setupUserInterface();
         pack();
         setVisible(true);
-        gameLoop();
+        gameLoop(deltaTime);
     }
     
 
-    private void gameLoop() {
+    private void gameLoop(double deltaTime) {
         final double targetFPS = 60.0;
         final double targetFrameTime = 1.0 / targetFPS;
         long elapsedTime, sleepTime;
     
         while (true) {
             long startTime = System.nanoTime();
-            updateParticles();
+            updateParticles(deltaTime);
             repaint();
     
             elapsedTime = System.nanoTime() - startTime;
@@ -61,7 +62,7 @@ public class ParticleSimulator extends JFrame {
     }
     
 
-    private void updateParticles() {
+    private void updateParticles(double deltaTime) {
         List<Particle> particlesCopy;
         synchronized (simulatorPanel) {
             particlesCopy = new ArrayList<>(simulatorPanel.getParticles());
@@ -72,8 +73,8 @@ public class ParticleSimulator extends JFrame {
         for (Particle particle : particlesCopy) {
             executorService.submit(() -> {
                 synchronized (simulatorPanel) {
-                    particle.move(0.016);
-                    simulatorPanel.checkWallCollision(particle);
+                    simulatorPanel.checkWallCollision(particle, deltaTime);
+                    particle.move(deltaTime);
                 }
                 latch.countDown();
             });
@@ -316,7 +317,7 @@ public class ParticleSimulator extends JFrame {
         private final int canvasHeight = 720;
         private BufferedImage offScreenBuffer;
     
-        public SimulatorPanel() {
+        public SimulatorPanel(double deltaTime) {
             particles = new ArrayList<>();
             walls = new ArrayList<>();
             offScreenBuffer = new BufferedImage(canvasWidth, canvasHeight, BufferedImage.TYPE_INT_ARGB);
@@ -384,10 +385,10 @@ public class ParticleSimulator extends JFrame {
             }
         }
 
-        private void checkWallCollision(Particle particle) {
-            double particleSize = 8;
+        private void checkWallCollision(Particle particle, double deltaTime) {
+            double particleSize = 10;
 
-            if (particle.getX() <= 0 || particle.getX() + particleSize >= canvasWidth) {
+            if (particle.get_next_x(deltaTime) <= 0 || particle.get_next_x(deltaTime) + particleSize >= canvasWidth) {
                 particle.bounceHorizontal();
             }
             if (particle.getY() <= 0 || particle.getY() + particleSize >= canvasHeight) {
@@ -395,32 +396,37 @@ public class ParticleSimulator extends JFrame {
             }
 
             for (Wall wall : walls) {
-                if (isParticleCollidingWithWall(particle, wall)) {
+                if (isParticleCollidingWithWall(particle, wall, deltaTime)) {
                     double wallAngle = Math.atan2(wall.getY2() - wall.getY1(), wall.getX2() - wall.getX1());
                     particle.bounceOffWall(wallAngle);
                 }
             }
         }
 
-        private boolean isParticleCollidingWithWall(Particle particle, Wall wall) {
-            double particleSize = 8;
+        private boolean isParticleCollidingWithWall(Particle particle, Wall wall, double deltaTime) {
+            double particleSize = 10;
             double x3 = wall.getX1();
             double y3 = wall.getY1();
             double x4 = wall.getX2();
             double y4 = wall.getY2();
-
+        
             double x1 = particle.getX();
             double y1 = particle.getY();
-            double x2 = x1 + particle.getVelocityX();
-            double y2 = y1 + particle.getVelocityY();
-
+            double x2 = particle.get_next_x(deltaTime);
+            double y2 = particle.get_next_y(deltaTime);
+        
             double temp = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-            if (temp == 0) return false;
-
+            if (temp == 0) return false; // Lines are parallel, no collision
+        
             double t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / temp;
             double u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / temp;
-
-            return t >= 0 && t <= 1 && u >= 0 && u <= 1 && distanceToWall(x1, y1, x3, y3, x4, y4) < particleSize;
+        
+            boolean isColliding = t >= 0 && t <= 1 && u >= 0 && u <= 1;
+            boolean isCloseToWall = distanceToWall(x1, y1, x3, y3, x4, y4) < particleSize;
+        
+            //System.out.println("isColliding: " + isColliding);
+        
+            return isColliding;
         }
 
         private double distanceToWall(double x, double y, double x1, double y1, double x2, double y2) {

@@ -16,6 +16,14 @@ public class Particle {
         y += velocity * Math.sin(Math.toRadians(angle)) * deltaTime;
     }
 
+    public double get_next_x(double deltaTime) {
+        return x + velocity * Math.cos(Math.toRadians(angle)) * deltaTime;
+    }
+
+    public double get_next_y(double deltaTime) {
+        return y + velocity * Math.sin(Math.toRadians(angle)) * deltaTime;
+    }
+
     public void bounceHorizontal() {
         angle = 180 - angle;
     }
