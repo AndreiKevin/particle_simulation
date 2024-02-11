@@ -45,7 +45,6 @@ public class Particle {
         double reflectY = getVelocityY() - 2 * dotProduct * wallNormalY;
     
         angle = Math.toDegrees(Math.atan2(reflectY, reflectX));
-        velocity = Math.sqrt(reflectX * reflectX + reflectY * reflectY);
     }
     
 
