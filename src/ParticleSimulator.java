@@ -421,36 +421,8 @@ public class ParticleSimulator extends JFrame {
             double u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / temp;
         
             boolean isColliding = t >= 0 && t <= 1 && u >= 0 && u <= 1;
-            
+
             return isColliding;
-        }
-
-        private double distanceToWall(double x, double y, double x1, double y1, double x2, double y2) {
-            double a = x - x1;
-            double b = y - y1;
-            double c = x2 - x1;
-            double d = y2 - y1;
-
-            double dot = a * c + b * d;
-            double t1 = c * c + d * d;
-            double t2 = dot / t1;
-
-            double closestX, closestY;
-
-            if (t2 < 0 || (x1 == x2 && y1 == y2)) {
-                closestX = x1;
-                closestY = y1;
-            } else if (t2 > 1) {
-                closestX = x2;
-                closestY = y2;
-            } else {
-                closestX = x1 + t2 * c;
-                closestY = y1 + t2 * d;
-            }
-
-            double dx = x - closestX;
-            double dy = y - closestY;
-            return Math.sqrt(dx * dx + dy * dy);
         }
 
         public void addParticlesFixedVelocityAndAngle(int n, double startX, double startY, double endX, double endY, double velocity, double angle) {
