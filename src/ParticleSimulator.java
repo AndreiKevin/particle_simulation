@@ -136,7 +136,7 @@ public class ParticleSimulator extends JFrame {
         clearPanel.add(clearWalls);
 
         JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new GridLayout(2, 2)); // Use GridLayout to arrange the two button panels vertically
+        buttonPanel.setLayout(new GridLayout(2, 2));
         buttonPanel.add(addPanel);
         buttonPanel.add(clearPanel);
         
