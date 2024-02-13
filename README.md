@@ -1,5 +1,5 @@
 # How to run the program
-- Open `jar` file, two windows should pop-up (canvas + inputs)
+- Open the `jar` file, two windows should pop-up (canvas + inputs)
  
 - Click on the dropdown to change input type `Single Particle`, `Constant Velocity + Varying Angle`, `Constant Start Points + Varying Angle`, `Constant Start Points + Varying Velocity`, `Add Wall`
  
