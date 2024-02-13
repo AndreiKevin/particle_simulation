@@ -409,7 +409,7 @@ public class ParticleSimulator extends JFrame {
             double y2 = particle.get_next_y(deltaTime);
         
             double temp = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-            if (temp == 0) return false; // Lines are parallel, no collision
+            if (temp == 0) return false;
         
             double t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / temp;
             double u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / temp;
