@@ -319,12 +319,6 @@ public class ParticleSimulator extends JFrame {
             walls = new ArrayList<>();
             offScreenBuffer = new BufferedImage(canvasWidth, canvasHeight, BufferedImage.TYPE_INT_ARGB);
             setBackground(Color.gray);
-    
-            // Test Particle
-            // addParticle(new Particle(0, 0, 75, 45));
-            // Test wall
-            addWall(new Wall(100, 600, 800, 100));
-            //addWall(new Wall(0, 685, 1280, 685));
         }
     
         public List<Particle> getParticles() {

@@ -1,7 +1,7 @@
 public class Particle {
-    private double x, y; // Position of the particle
-    private double velocity; // Speed of the particle
-    private double angle; // Direction of the particle in degrees
+    private double x, y; 
+    private double velocity; 
+    private double angle; 
 
     public Particle(double x, double y, double velocity, double angle) {
         this.x = x;
@@ -10,7 +10,6 @@ public class Particle {
         this.angle = angle;
     }
 
-    // Method to update the particle's position
     public void move(double deltaTime) {
         x += velocity * Math.cos(Math.toRadians(angle)) * deltaTime;
         y += velocity * Math.sin(Math.toRadians(angle)) * deltaTime;
