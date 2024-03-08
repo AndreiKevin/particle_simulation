@@ -15,6 +15,7 @@ public class ParticleSimulator extends JFrame {
 
     private final SimulatorPanel simulatorPanel;
     private final ExecutorService executorService;
+    final double deltaTime = 0.016;
     private static double lastUpdateTime;
     private static int fps;
     private static int frames;
@@ -65,17 +66,16 @@ public class ParticleSimulator extends JFrame {
     
 
     private void updateParticles(double deltaTime, double particleSize) {
-        CountDownLatch latch = new CountDownLatch(simulatorPanel.getParticles().size());
+
 
         for (Particle particle : simulatorPanel.getParticles()) {
             executorService.submit(() -> {
                 particle.move(deltaTime);
                 simulatorPanel.checkWallCollision(particle, deltaTime, particleSize);
-                latch.countDown();
             });
         }
         try {
-            latch.await();
+            Thread.sleep(20);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -182,7 +182,8 @@ public class ParticleSimulator extends JFrame {
                         double angle = Double.parseDouble(singleA.getText());
                         double velocity = Double.parseDouble(singleV.getText());
                         Particle particle = new Particle(X, Y, velocity, angle);
-                        simulatorPanel.addParticle(particle);
+                        simulatorPanel.addParticle(particle, deltaTime);
+
                         break;
                     case "Const Velocity + Angle":
                         int n = Integer.parseInt(numInputs.getText());
@@ -190,19 +191,19 @@ public class ParticleSimulator extends JFrame {
                         double startY = Double.parseDouble(yStartField.getText());
                         double endX = Double.parseDouble(xEndField.getText());
                         double endY = Double.parseDouble(yEndField.getText());
-                        simulatorPanel.addParticlesFixedVelocityAndAngle(n, startX, startY, endX, endY, 50, 45);
+                        simulatorPanel.addParticlesFixedVelocityAndAngle(n, startX, startY, endX, endY, 50, 45, deltaTime);
                         break;
                     case "Const Start + Varying Angle":
                         n = Integer.parseInt(n2.getText());
                         double startAngle = Double.parseDouble(startAngleField.getText());
                         double endAngle = Double.parseDouble(endAngleField.getText());
-                        simulatorPanel.addParticlesFixedStartPointAndVelocity(n, 800, 300, startAngle, endAngle, 50);
+                        simulatorPanel.addParticlesFixedStartPointAndVelocity(n, 800, 300, startAngle, endAngle, 50, deltaTime);
                         break;
                     case "Const Start + Varying Velocity":
                         n = Integer.parseInt(n3.getText());
                         double startVelocity = Double.parseDouble(startVelocityField.getText());
                         double endVelocity = Double.parseDouble(endVelocityField.getText());
-                        simulatorPanel.addParticlesFixedStartPointAndAngle(n, 0, 0, 45, startVelocity, endVelocity);
+                        simulatorPanel.addParticlesFixedStartPointAndAngle(n, 0, 0, 45, startVelocity, endVelocity, deltaTime);
                         break;
                 }
             }
@@ -325,8 +326,13 @@ public class ParticleSimulator extends JFrame {
             return particles;
         }
     
-        public void addParticle(Particle particle) {
+        public void addParticle(Particle particle, double deltaTime) {
             particles.add(particle);
+            executorService.submit(() -> {
+                particle.move(deltaTime);
+                simulatorPanel.checkWallCollision(particle, deltaTime, particleSize);
+                
+            });
         }
     
         public void addWall(Wall wall) {
@@ -413,29 +419,29 @@ public class ParticleSimulator extends JFrame {
             return isColliding;
         }
 
-        public void addParticlesFixedVelocityAndAngle(int n, double startX, double startY, double endX, double endY, double velocity, double angle) {
+        public void addParticlesFixedVelocityAndAngle(int n, double startX, double startY, double endX, double endY, double velocity, double angle, double deltaTime) {
             double deltaX = (endX - startX) / (n - 1);
             double deltaY = (endY - startY) / (n - 1);
             for (int i = 0; i < n; i++) {
                 double x = startX + i * deltaX;
                 double y = startY + i * deltaY;
-                addParticle(new Particle(x, y, velocity, angle));
+                addParticle(new Particle(x, y, velocity, angle), deltaTime);
             }
         }
 
-        public void addParticlesFixedStartPointAndVelocity(int n, double startX, double startY, double startAngle, double endAngle, double velocity) {
+        public void addParticlesFixedStartPointAndVelocity(int n, double startX, double startY, double startAngle, double endAngle, double velocity, double deltaTime) {
             double deltaAngle = (endAngle - startAngle) / (n - 1);
             for (int i = 0; i < n; i++) {
                 double angle = startAngle + i * deltaAngle;
-                addParticle(new Particle(startX, startY, velocity, angle));
+                addParticle(new Particle(startX, startY, velocity, angle), deltaTime);
             }
         }
 
-        public void addParticlesFixedStartPointAndAngle(int n, double startX, double startY, double angle, double startVelocity, double endVelocity) {
+        public void addParticlesFixedStartPointAndAngle(int n, double startX, double startY, double angle, double startVelocity, double endVelocity, double deltaTime) {
             double deltaVelocity = (endVelocity - startVelocity) / (n - 1);
             for (int i = 0; i < n; i++) {
                 double velocity = startVelocity + i * deltaVelocity;
-                addParticle(new Particle(startX, startY, velocity, angle));
+                addParticle(new Particle(startX, startY, velocity, angle), deltaTime);
             }
         }
     }
