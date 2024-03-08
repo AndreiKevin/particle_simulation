@@ -32,7 +32,7 @@ public class ParticleSimulator extends JFrame {
         executorService = Executors.newWorkStealingPool();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         simulatorPanel = new SimulatorPanel(deltaTime, particleSize);
-        simulatorPanel.setPreferredSize(new Dimension(1280, 720));
+        simulatorPanel.setPreferredSize(new Dimension(100, 100));
         add(simulatorPanel);
         setupUserInterface();
         pack();
@@ -309,8 +309,10 @@ public class ParticleSimulator extends JFrame {
     private class SimulatorPanel extends JPanel {
         private List<Particle> particles;
         private List<Wall> walls;
-        private final int canvasWidth = 1280;
-        private final int canvasHeight = 720;
+        private final int canvasWidth = 100;
+        private final int canvasHeight = 100;
+        private final int particleCanvasWidth = 1280;
+        private final int particleCanvasHeight = 720;
         private BufferedImage offScreenBuffer;
         private double particleSize;
     
@@ -382,10 +384,10 @@ public class ParticleSimulator extends JFrame {
         }
 
         private void checkWallCollision(Particle particle, double deltaTime, double particleSize) {
-            if (particle.get_next_x(deltaTime) <= 0 || particle.get_next_x(deltaTime) + particleSize >= canvasWidth) {
+            if (particle.get_next_x(deltaTime) <= 0 || particle.get_next_x(deltaTime) + particleSize >= particleCanvasWidth) {
                 particle.bounceHorizontal();
             }
-            if (particle.getY() <= 0 || particle.getY() + particleSize >= canvasHeight) {
+            if (particle.getY() <= 0 || particle.getY() + particleSize >= particleCanvasHeight) {
                 particle.bounceVertical();
             }
 
