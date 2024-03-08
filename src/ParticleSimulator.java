@@ -309,10 +309,10 @@ public class ParticleSimulator extends JFrame {
     private class SimulatorPanel extends JPanel {
         private List<Particle> particles;
         private List<Wall> walls;
-        private final int canvasWidth = 100;
-        private final int canvasHeight = 100;
-        private final int particleCanvasWidth = 1280;
-        private final int particleCanvasHeight = 720;
+        private final int canvasWidth = 100; // width limit of current viewable canvas
+        private final int canvasHeight = 100; // height limit of current viewable canvas
+        private final int particleCanvasWidth = 1280; // width limit of where the particle can travel
+        private final int particleCanvasHeight = 720; // height limit of where the particle can travel
         private BufferedImage offScreenBuffer;
         private double particleSize;
     
