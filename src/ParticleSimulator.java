@@ -31,7 +31,7 @@ public class ParticleSimulator extends JFrame {
         executorService = Executors.newWorkStealingPool();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         simulatorPanel = new SimulatorPanel(deltaTime, particleSize);
-        simulatorPanel.setPreferredSize(new Dimension(1280, 720));
+        simulatorPanel.setPreferredSize(new Dimension(1280, 100));
         add(simulatorPanel);
         setupUserInterface();
         pack();
@@ -118,6 +118,18 @@ public class ParticleSimulator extends JFrame {
             }
         });
 
+        ZoomPanel zoomPanel = new ZoomPanel();
+        JButton adventureModeButton = new JButton("Adventure Mode");
+        adventureModeButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                
+            }
+        });
+        adventureModeButton.addActionListener(e -> {
+            zoomPanel.setZoomFactor(zoomPanel.getZoomFactor() * 1.1);
+        });
+
         JButton clearWalls = new JButton("Clear Walls");
         clearWalls.addActionListener(new ActionListener() {
             @Override
@@ -125,9 +137,18 @@ public class ParticleSimulator extends JFrame {
                 clearWalls();
             }
         });
-    
+
+        
+
+        zoomOutButton.addActionListener(e -> {
+            zoomPanel.setZoomFactor(zoomPanel.getZoomFactor() / 1.1);
+        });
+        // End Zoom Panel
+
+        
         JPanel addPanel = new JPanel();
         addPanel.add(addButton);
+        addPanel.add(adventureModeButton);
 
         JPanel clearPanel = new JPanel();
         clearPanel.setLayout(new GridLayout(1, 2));
@@ -450,4 +471,20 @@ public class ParticleSimulator extends JFrame {
     public static void main(String[] args) {
         new ParticleSimulator();
     }
+
+
+    class ZoomPanel extends JPanel {
+        
+    
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g;
+            g2.scale(zoomFactor, zoomFactor);
+            // Your drawing logic here
+            this.zoomFactor = zoomFactor;
+            repaint();
+        }
+    }
+    
 }
