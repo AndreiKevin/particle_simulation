@@ -6,6 +6,7 @@ import java.awt.event.ActionListener;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.ArrayList;
 import java.awt.image.BufferedImage;
 
@@ -102,6 +103,7 @@ public class ParticleSimulator extends JFrame {
         startVelocityField = new JTextField();
         endVelocityField = new JTextField();
         JButton addButton = new JButton("Add");
+        AtomicBoolean inAdventure = new AtomicBoolean(false);
 
         inputPanel = new JPanel(new CardLayout());
         inputPanel.add(singleParticle(), "Default singular particle");
@@ -118,17 +120,17 @@ public class ParticleSimulator extends JFrame {
             }
         });
 
-        ZoomPanel zoomPanel = new ZoomPanel();
+        //ZoomPanel zoomPanel = new ZoomPanel();
         JButton adventureModeButton = new JButton("Adventure Mode");
         adventureModeButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                
+                addButton.setEnabled(inAdventure.getAndSet(!inAdventure.get()));
             }
         });
-        adventureModeButton.addActionListener(e -> {
-            zoomPanel.setZoomFactor(zoomPanel.getZoomFactor() * 1.1);
-        });
+        // adventureModeButton.addActionListener(e -> {
+        //     zoomPanel.setZoomFactor(zoomPanel.getZoomFactor() * 1.1);
+        // });
 
         JButton clearWalls = new JButton("Clear Walls");
         clearWalls.addActionListener(new ActionListener() {
@@ -140,9 +142,9 @@ public class ParticleSimulator extends JFrame {
 
         
 
-        zoomOutButton.addActionListener(e -> {
-            zoomPanel.setZoomFactor(zoomPanel.getZoomFactor() / 1.1);
-        });
+        // zoomOutButton.addActionListener(e -> {
+        //     zoomPanel.setZoomFactor(zoomPanel.getZoomFactor() / 1.1);
+        // });
         // End Zoom Panel
 
         
@@ -473,18 +475,18 @@ public class ParticleSimulator extends JFrame {
     }
 
 
-    class ZoomPanel extends JPanel {
+    // class ZoomPanel extends JPanel {
         
     
-        @Override
-        protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            Graphics2D g2 = (Graphics2D) g;
-            g2.scale(zoomFactor, zoomFactor);
-            // Your drawing logic here
-            this.zoomFactor = zoomFactor;
-            repaint();
-        }
-    }
+    //     @Override
+    //     protected void paintComponent(Graphics g) {
+    //         super.paintComponent(g);
+    //         Graphics2D g2 = (Graphics2D) g;
+    //         g2.scale(zoomFactor, zoomFactor);
+    //         // Your drawing logic here
+    //         this.zoomFactor = zoomFactor;
+    //         repaint();
+    //     }
+    // }
     
 }
