@@ -5,7 +5,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.CountDownLatch;
 import java.util.List;
 import java.util.ArrayList;
 import java.awt.image.BufferedImage;
@@ -32,7 +31,7 @@ public class ParticleSimulator extends JFrame {
         executorService = Executors.newWorkStealingPool();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         simulatorPanel = new SimulatorPanel(deltaTime, particleSize);
-        simulatorPanel.setPreferredSize(new Dimension(100, 100));
+        simulatorPanel.setPreferredSize(new Dimension(1280, 720));
         add(simulatorPanel);
         setupUserInterface();
         pack();
