@@ -3,6 +3,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyListener;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.List;
@@ -10,6 +11,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.ArrayList;
 import java.awt.image.BufferedImage;
 import java.lang.Math;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.util.concurrent.CountDownLatch;
+
 
 
 public class ParticleSimulator extends JFrame {
@@ -68,14 +73,17 @@ public class ParticleSimulator extends JFrame {
     
 
     private void updateParticles(double deltaTime, double particleSize) {
+        CountDownLatch latch = new CountDownLatch(simulatorPanel.getParticles().size());
+
         for (Particle particle : simulatorPanel.getParticles()) {
             executorService.submit(() -> {
                 particle.move(deltaTime);
                 simulatorPanel.checkWallCollision(particle, deltaTime, particleSize);
+                latch.countDown();
             });
         }
         try {
-            Thread.sleep(20);
+            latch.await();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -120,12 +128,13 @@ public class ParticleSimulator extends JFrame {
             }
         });
 
-        // Add Zoom Button
         JButton adventureModeButton = new JButton("Adventure Mode");
         adventureModeButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 addButton.setEnabled(inAdventure.getAndSet(!inAdventure.get()));
+                simulatorPanel.requestFocus();
+                simulatorPanel.requestFocusInWindow();
             }
         });
         adventureModeButton.addActionListener(e -> {
@@ -140,7 +149,6 @@ public class ParticleSimulator extends JFrame {
                 clearWalls();
             }
         });
-        // End Zoom Button
 
         
         JPanel addPanel = new JPanel();
@@ -323,7 +331,7 @@ public class ParticleSimulator extends JFrame {
         repaint();
     }
 
-    private class SimulatorPanel extends JPanel {
+    private class SimulatorPanel extends JPanel implements KeyListener{
         private List<Particle> particles;
         private List<Wall> walls;
         private final int canvasWidth = 1280; // width limit of current viewable canvas and where the particle can travel
@@ -336,6 +344,8 @@ public class ParticleSimulator extends JFrame {
         final double deZoomFactor = 1.0; // reverse zoom factor
         private BufferedImage offScreenBuffer;
         private double particleSize;
+        private int redPixelX = 0;
+    private int redPixelY = 0;
     
         public SimulatorPanel(double deltaTime, double particleSize) {
             this.particleSize = particleSize;
@@ -343,6 +353,9 @@ public class ParticleSimulator extends JFrame {
             walls = new ArrayList<>();
             offScreenBuffer = new BufferedImage(canvasWidth, canvasHeight, BufferedImage.TYPE_INT_ARGB);
             setBackground(Color.gray);
+            addKeyListener(this);
+        setFocusable(true);
+        setFocusTraversalKeysEnabled(false);
         }
     
         public List<Particle> getParticles() {
@@ -382,6 +395,12 @@ public class ParticleSimulator extends JFrame {
             drawWalls(offScreenGraphics);
     
             g.drawImage(offScreenBuffer, 0, 0, this);
+
+            if (zoomed) {
+                int scaledRedPixelSize = (int) (4 * zoomFactor);
+        
+                g.fillRect(redPixelX, redPixelY, scaledRedPixelSize, scaledRedPixelSize);
+            }
     
             frames++;
             long currentTime = System.currentTimeMillis();
@@ -392,6 +411,37 @@ public class ParticleSimulator extends JFrame {
             }
             g.drawString("FPS: " + fps, 10, 20);
         }
+
+        @Override
+public void keyPressed(KeyEvent e) {
+    int keyCode = e.getKeyCode();
+
+    if(zoomed){
+    switch (keyCode) {
+        case KeyEvent.VK_LEFT:
+            redPixelX = Math.max(0, redPixelX - 10);
+            break;
+        case KeyEvent.VK_RIGHT:
+            redPixelX = Math.min(canvasWidth - 1, redPixelX + 10);
+            break;
+        case KeyEvent.VK_UP:
+            redPixelY = Math.max(0, redPixelY - 10);
+            break;
+        case KeyEvent.VK_DOWN:
+            redPixelY = Math.min(canvasHeight - 1, redPixelY + 10);
+            break;
+    }}
+
+    repaint();
+}
+
+    @Override
+    public void keyTyped(KeyEvent e) {
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+    }
     
         private void drawParticles(Graphics g, double particleSize) {
             for (Particle particle : particles) {
