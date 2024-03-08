@@ -9,13 +9,15 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.ArrayList;
 import java.awt.image.BufferedImage;
+import java.lang.Math;
 
 
 public class ParticleSimulator extends JFrame {
-
     private final SimulatorPanel simulatorPanel;
     private final ExecutorService executorService;
     final double deltaTime = 0.016;
+    private boolean zoomed = false;
+    private boolean updatedZoomState = true;
     private static double lastUpdateTime;
     private static int fps;
     private static int frames;
@@ -32,7 +34,7 @@ public class ParticleSimulator extends JFrame {
         executorService = Executors.newWorkStealingPool();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         simulatorPanel = new SimulatorPanel(deltaTime, particleSize);
-        simulatorPanel.setPreferredSize(new Dimension(1280, 100));
+        simulatorPanel.setPreferredSize(new Dimension(1280, 720));
         add(simulatorPanel);
         setupUserInterface();
         pack();
@@ -66,8 +68,6 @@ public class ParticleSimulator extends JFrame {
     
 
     private void updateParticles(double deltaTime, double particleSize) {
-
-
         for (Particle particle : simulatorPanel.getParticles()) {
             executorService.submit(() -> {
                 particle.move(deltaTime);
@@ -120,7 +120,7 @@ public class ParticleSimulator extends JFrame {
             }
         });
 
-        //ZoomPanel zoomPanel = new ZoomPanel();
+        // Add Zoom Button
         JButton adventureModeButton = new JButton("Adventure Mode");
         adventureModeButton.addActionListener(new ActionListener() {
             @Override
@@ -128,9 +128,10 @@ public class ParticleSimulator extends JFrame {
                 addButton.setEnabled(inAdventure.getAndSet(!inAdventure.get()));
             }
         });
-        // adventureModeButton.addActionListener(e -> {
-        //     zoomPanel.setZoomFactor(zoomPanel.getZoomFactor() * 1.1);
-        // });
+        adventureModeButton.addActionListener(e -> {
+            zoomed = !zoomed;
+            updatedZoomState = false;
+        });
 
         JButton clearWalls = new JButton("Clear Walls");
         clearWalls.addActionListener(new ActionListener() {
@@ -139,13 +140,7 @@ public class ParticleSimulator extends JFrame {
                 clearWalls();
             }
         });
-
-        
-
-        // zoomOutButton.addActionListener(e -> {
-        //     zoomPanel.setZoomFactor(zoomPanel.getZoomFactor() / 1.1);
-        // });
-        // End Zoom Panel
+        // End Zoom Button
 
         
         JPanel addPanel = new JPanel();
@@ -331,10 +326,14 @@ public class ParticleSimulator extends JFrame {
     private class SimulatorPanel extends JPanel {
         private List<Particle> particles;
         private List<Wall> walls;
-        private final int canvasWidth = 100; // width limit of current viewable canvas
-        private final int canvasHeight = 100; // height limit of current viewable canvas
-        private final int particleCanvasWidth = 1280; // width limit of where the particle can travel
-        private final int particleCanvasHeight = 720; // height limit of where the particle can travel
+        private final int canvasWidth = 1280; // width limit of current viewable canvas and where the particle can travel
+        private final int canvasHeight = 720; // height limit of current viewable canvas and where the particle can travel
+        private final int desired_width = 33; // the desired adventure mode in width of the canvas
+        private final int desired_height = 19; // the desired aventure mode height of the canvas
+        private final double scale_factor_width = canvasWidth / desired_width;
+        private final double scale_factor_height = canvasHeight / desired_height;
+        final double zoomFactor = Math.min(scale_factor_width, scale_factor_height);
+        final double deZoomFactor = 1.0; // reverse zoom factor
         private BufferedImage offScreenBuffer;
         private double particleSize;
     
@@ -369,7 +368,14 @@ public class ParticleSimulator extends JFrame {
     
         @Override
         protected void paintComponent(Graphics g) {
-            Graphics offScreenGraphics = offScreenBuffer.getGraphics();
+            Graphics2D offScreenGraphics = (Graphics2D) offScreenBuffer.getGraphics();
+            if (zoomed && !updatedZoomState) {
+                offScreenGraphics.scale(zoomFactor, zoomFactor);
+            }
+            else if (!zoomed && !updatedZoomState){
+                offScreenGraphics.scale(deZoomFactor, deZoomFactor);
+            }
+            
             super.paintComponent(offScreenGraphics);
     
             drawParticles(offScreenGraphics, particleSize);
@@ -406,10 +412,10 @@ public class ParticleSimulator extends JFrame {
         }
 
         private void checkWallCollision(Particle particle, double deltaTime, double particleSize) {
-            if (particle.get_next_x(deltaTime) <= 0 || particle.get_next_x(deltaTime) + particleSize >= particleCanvasWidth) {
+            if (particle.get_next_x(deltaTime) <= 0 || particle.get_next_x(deltaTime) + particleSize >= canvasWidth) {
                 particle.bounceHorizontal();
             }
-            if (particle.getY() <= 0 || particle.getY() + particleSize >= particleCanvasHeight) {
+            if (particle.getY() <= 0 || particle.getY() + particleSize >= canvasHeight) {
                 particle.bounceVertical();
             }
 
@@ -473,20 +479,4 @@ public class ParticleSimulator extends JFrame {
     public static void main(String[] args) {
         new ParticleSimulator();
     }
-
-
-    // class ZoomPanel extends JPanel {
-        
-    
-    //     @Override
-    //     protected void paintComponent(Graphics g) {
-    //         super.paintComponent(g);
-    //         Graphics2D g2 = (Graphics2D) g;
-    //         g2.scale(zoomFactor, zoomFactor);
-    //         // Your drawing logic here
-    //         this.zoomFactor = zoomFactor;
-    //         repaint();
-    //     }
-    // }
-    
 }
