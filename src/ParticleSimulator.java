@@ -3,31 +3,27 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.KeyListener;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.CountDownLatch;
+import java.util.List;
 import java.util.ArrayList;
 import java.awt.image.BufferedImage;
-import java.lang.Math;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.util.concurrent.CountDownLatch;
-
-
 
 public class ParticleSimulator extends JFrame {
+
     private final SimulatorPanel simulatorPanel;
     private final ExecutorService executorService;
-    final double deltaTime = 0.016;
-    private boolean zoomed = false;
-    private boolean updatedZoomState = true;
     private static double lastUpdateTime;
+    private boolean zoomed = false;
     private static int fps;
     private static int frames;
     private JTextField wX1, wX2, wY1, wY2, numInputs, n2, n3, xStartField, yStartField, xEndField, yEndField, startAngleField, endAngleField, startVelocityField, endVelocityField, singleX, singleY, singleV, singleA;
-
+    private int spriteX, spriteY;
+    private static final int SPRITE_SPEED = 5;
     private JComboBox<String> dropdownBox;
 
     private JPanel inputPanel;
@@ -135,11 +131,11 @@ public class ParticleSimulator extends JFrame {
                 addButton.setEnabled(inAdventure.getAndSet(!inAdventure.get()));
                 simulatorPanel.requestFocus();
                 simulatorPanel.requestFocusInWindow();
+                simulatorPanel.toggleZoom();
             }
         });
         adventureModeButton.addActionListener(e -> {
             zoomed = !zoomed;
-            updatedZoomState = false;
         });
 
         JButton clearWalls = new JButton("Clear Walls");
@@ -149,8 +145,7 @@ public class ParticleSimulator extends JFrame {
                 clearWalls();
             }
         });
-
-        
+    
         JPanel addPanel = new JPanel();
         addPanel.add(addButton);
         addPanel.add(adventureModeButton);
@@ -207,8 +202,7 @@ public class ParticleSimulator extends JFrame {
                         double angle = Double.parseDouble(singleA.getText());
                         double velocity = Double.parseDouble(singleV.getText());
                         Particle particle = new Particle(X, Y, velocity, angle);
-                        simulatorPanel.addParticle(particle, deltaTime);
-
+                        simulatorPanel.addParticle(particle);
                         break;
                     case "Const Velocity + Angle":
                         int n = Integer.parseInt(numInputs.getText());
@@ -216,19 +210,19 @@ public class ParticleSimulator extends JFrame {
                         double startY = Double.parseDouble(yStartField.getText());
                         double endX = Double.parseDouble(xEndField.getText());
                         double endY = Double.parseDouble(yEndField.getText());
-                        simulatorPanel.addParticlesFixedVelocityAndAngle(n, startX, startY, endX, endY, 50, 45, deltaTime);
+                        simulatorPanel.addParticlesFixedVelocityAndAngle(n, startX, startY, endX, endY, 50, 45);
                         break;
                     case "Const Start + Varying Angle":
                         n = Integer.parseInt(n2.getText());
                         double startAngle = Double.parseDouble(startAngleField.getText());
                         double endAngle = Double.parseDouble(endAngleField.getText());
-                        simulatorPanel.addParticlesFixedStartPointAndVelocity(n, 800, 300, startAngle, endAngle, 50, deltaTime);
+                        simulatorPanel.addParticlesFixedStartPointAndVelocity(n, 800, 300, startAngle, endAngle, 50);
                         break;
                     case "Const Start + Varying Velocity":
                         n = Integer.parseInt(n3.getText());
                         double startVelocity = Double.parseDouble(startVelocityField.getText());
                         double endVelocity = Double.parseDouble(endVelocityField.getText());
-                        simulatorPanel.addParticlesFixedStartPointAndAngle(n, 0, 0, 45, startVelocity, endVelocity, deltaTime);
+                        simulatorPanel.addParticlesFixedStartPointAndAngle(n, 0, 0, 45, startVelocity, endVelocity);
                         break;
                 }
             }
@@ -331,44 +325,77 @@ public class ParticleSimulator extends JFrame {
         repaint();
     }
 
-    private class SimulatorPanel extends JPanel implements KeyListener{
+    private class SimulatorPanel extends JPanel {
         private List<Particle> particles;
         private List<Wall> walls;
-        private final int canvasWidth = 1280; // width limit of current viewable canvas and where the particle can travel
-        private final int canvasHeight = 720; // height limit of current viewable canvas and where the particle can travel
+        private final int canvasWidth = 1280;
+        private final int canvasHeight = 720;
+        private BufferedImage offScreenBuffer;
+        private double particleSize;
+        private BufferedImage redPixelSprite;
+        private boolean zoomed = false;
         private final int desired_width = 33; // the desired adventure mode in width of the canvas
         private final int desired_height = 19; // the desired aventure mode height of the canvas
         private final double scale_factor_width = canvasWidth / desired_width;
         private final double scale_factor_height = canvasHeight / desired_height;
-        final double zoomFactor = Math.min(scale_factor_width, scale_factor_height);
-        final double deZoomFactor = 1.0; // reverse zoom factor
-        private BufferedImage offScreenBuffer;
-        private double particleSize;
-        private int redPixelX = 0;
-    private int redPixelY = 0;
+        private double zoomFactor = 1;
+        final double zoom2 = Math.min(scale_factor_width, scale_factor_height); 
     
         public SimulatorPanel(double deltaTime, double particleSize) {
             this.particleSize = particleSize;
             particles = new ArrayList<>();
             walls = new ArrayList<>();
+            spriteX = (canvasWidth - 5) / 2;
+            spriteY = (canvasHeight - 5) / 2;
+            setFocusable(true);
+            addKeyListener(new ArrowKeyListener());
             offScreenBuffer = new BufferedImage(canvasWidth, canvasHeight, BufferedImage.TYPE_INT_ARGB);
+            redPixelSprite = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+            redPixelSprite.setRGB(0, 0, Color.RED.getRGB());
             setBackground(Color.gray);
-            addKeyListener(this);
-        setFocusable(true);
-        setFocusTraversalKeysEnabled(false);
+        }
+
+        private class ArrowKeyListener implements KeyListener {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                int keyCode = e.getKeyCode();
+        
+                if(zoomed){
+                switch (keyCode) {
+                    case KeyEvent.VK_UP:
+                        spriteY -= SPRITE_SPEED;
+                        break;
+                    case KeyEvent.VK_DOWN:
+                        spriteY += SPRITE_SPEED;
+                        break;
+                    case KeyEvent.VK_LEFT:
+                        spriteX -= SPRITE_SPEED;
+                        break;
+                    case KeyEvent.VK_RIGHT:
+                        spriteX += SPRITE_SPEED;
+                        break;
+                }}
+        
+                repaint();
+            }
+        
+            @Override
+            public void keyTyped(KeyEvent e) {
+                
+            }
+        
+            @Override
+            public void keyReleased(KeyEvent e) {
+                
+            }
         }
     
         public List<Particle> getParticles() {
             return particles;
         }
     
-        public void addParticle(Particle particle, double deltaTime) {
+        public void addParticle(Particle particle) {
             particles.add(particle);
-            executorService.submit(() -> {
-                particle.move(deltaTime);
-                simulatorPanel.checkWallCollision(particle, deltaTime, particleSize);
-                
-            });
         }
     
         public void addWall(Wall wall) {
@@ -382,25 +409,26 @@ public class ParticleSimulator extends JFrame {
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D offScreenGraphics = (Graphics2D) offScreenBuffer.getGraphics();
-            if (zoomed && !updatedZoomState) {
-                offScreenGraphics.scale(zoomFactor, zoomFactor);
-            }
-            else if (!zoomed && !updatedZoomState){
-                offScreenGraphics.scale(deZoomFactor, deZoomFactor);
-            }
-            
             super.paintComponent(offScreenGraphics);
-    
+
+            int scaledWidth = (int) (canvasWidth * zoomFactor);
+            int scaledHeight = (int) (canvasHeight * zoomFactor);
+            int offsetX = (getWidth() - scaledWidth) / 2;
+            int offsetY = (getHeight() - scaledHeight) / 2;
+            offScreenGraphics.translate(offsetX, offsetY);
+            
+            offScreenGraphics.scale(zoomFactor, zoomFactor);
+
             drawParticles(offScreenGraphics, particleSize);
             drawWalls(offScreenGraphics);
-    
-            g.drawImage(offScreenBuffer, 0, 0, this);
 
-            if (zoomed) {
-                int scaledRedPixelSize = (int) (4 * zoomFactor);
-        
-                g.fillRect(redPixelX, redPixelY, scaledRedPixelSize, scaledRedPixelSize);
-            }
+            offScreenGraphics.setColor(Color.RED);
+            offScreenGraphics.fillRect(spriteX, spriteY, 1, 1);
+
+            offScreenGraphics.scale(1.0 / zoomFactor, 1.0 / zoomFactor);
+            offScreenGraphics.translate(-offsetX, -offsetY);
+
+            g.drawImage(offScreenBuffer, 0, 0, this);
     
             frames++;
             long currentTime = System.currentTimeMillis();
@@ -412,36 +440,18 @@ public class ParticleSimulator extends JFrame {
             g.drawString("FPS: " + fps, 10, 20);
         }
 
-        @Override
-public void keyPressed(KeyEvent e) {
-    int keyCode = e.getKeyCode();
-
-    if(zoomed){
-    switch (keyCode) {
-        case KeyEvent.VK_LEFT:
-            redPixelX = Math.max(0, redPixelX - 10);
-            break;
-        case KeyEvent.VK_RIGHT:
-            redPixelX = Math.min(canvasWidth - 1, redPixelX + 10);
-            break;
-        case KeyEvent.VK_UP:
-            redPixelY = Math.max(0, redPixelY - 10);
-            break;
-        case KeyEvent.VK_DOWN:
-            redPixelY = Math.min(canvasHeight - 1, redPixelY + 10);
-            break;
-    }}
-
-    repaint();
-}
-
-    @Override
-    public void keyTyped(KeyEvent e) {
-    }
-
-    @Override
-    public void keyReleased(KeyEvent e) {
-    }
+        private void updateZoom() {
+            if (zoomed) {
+                zoomFactor = zoom2; 
+            } else {
+                zoomFactor = 1.0; 
+            }
+        }
+    
+        public void toggleZoom() {
+            zoomed = !zoomed;
+            updateZoom();
+        }
     
         private void drawParticles(Graphics g, double particleSize) {
             for (Particle particle : particles) {
@@ -499,29 +509,29 @@ public void keyPressed(KeyEvent e) {
             return isColliding;
         }
 
-        public void addParticlesFixedVelocityAndAngle(int n, double startX, double startY, double endX, double endY, double velocity, double angle, double deltaTime) {
+        public void addParticlesFixedVelocityAndAngle(int n, double startX, double startY, double endX, double endY, double velocity, double angle) {
             double deltaX = (endX - startX) / (n - 1);
             double deltaY = (endY - startY) / (n - 1);
             for (int i = 0; i < n; i++) {
                 double x = startX + i * deltaX;
                 double y = startY + i * deltaY;
-                addParticle(new Particle(x, y, velocity, angle), deltaTime);
+                addParticle(new Particle(x, y, velocity, angle));
             }
         }
 
-        public void addParticlesFixedStartPointAndVelocity(int n, double startX, double startY, double startAngle, double endAngle, double velocity, double deltaTime) {
+        public void addParticlesFixedStartPointAndVelocity(int n, double startX, double startY, double startAngle, double endAngle, double velocity) {
             double deltaAngle = (endAngle - startAngle) / (n - 1);
             for (int i = 0; i < n; i++) {
                 double angle = startAngle + i * deltaAngle;
-                addParticle(new Particle(startX, startY, velocity, angle), deltaTime);
+                addParticle(new Particle(startX, startY, velocity, angle));
             }
         }
 
-        public void addParticlesFixedStartPointAndAngle(int n, double startX, double startY, double angle, double startVelocity, double endVelocity, double deltaTime) {
+        public void addParticlesFixedStartPointAndAngle(int n, double startX, double startY, double angle, double startVelocity, double endVelocity) {
             double deltaVelocity = (endVelocity - startVelocity) / (n - 1);
             for (int i = 0; i < n; i++) {
                 double velocity = startVelocity + i * deltaVelocity;
-                addParticle(new Particle(startX, startY, velocity, angle), deltaTime);
+                addParticle(new Particle(startX, startY, velocity, angle));
             }
         }
     }
