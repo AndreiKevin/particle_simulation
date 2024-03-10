@@ -23,7 +23,7 @@ public class ParticleSimulator extends JFrame {
     private static int frames;
     private JTextField wX1, wX2, wY1, wY2, numInputs, n2, n3, xStartField, yStartField, xEndField, yEndField, startAngleField, endAngleField, startVelocityField, endVelocityField, singleX, singleY, singleV, singleA;
     private int spriteX, spriteY;
-    private static final int SPRITE_SPEED = 5;
+    private static final int SPRITE_SPEED = 1;
     private JComboBox<String> dropdownBox;
 
     private JPanel inputPanel;
@@ -359,34 +359,65 @@ public class ParticleSimulator extends JFrame {
             @Override
             public void keyPressed(KeyEvent e) {
                 int keyCode = e.getKeyCode();
-        
+
                 if(zoomed){
-                switch (keyCode) {
-                    case KeyEvent.VK_UP:
-                        spriteY -= SPRITE_SPEED;
-                        break;
-                    case KeyEvent.VK_DOWN:
-                        spriteY += SPRITE_SPEED;
-                        break;
-                    case KeyEvent.VK_LEFT:
-                        spriteX -= SPRITE_SPEED;
-                        break;
-                    case KeyEvent.VK_RIGHT:
-                        spriteX += SPRITE_SPEED;
-                        break;
-                }}
+                    switch (keyCode) {
+                        case KeyEvent.VK_UP:
+                            spriteY -= SPRITE_SPEED;
+                            break;
+                        case KeyEvent.VK_DOWN:
+                            spriteY += SPRITE_SPEED;
+                            break;
+                        case KeyEvent.VK_LEFT:
+                            spriteX -= SPRITE_SPEED;
+                            break;
+                        case KeyEvent.VK_RIGHT:
+                            spriteX += SPRITE_SPEED;
+                            break;
+                    }}
+        
+                // if (zoomed) {
+                //     int canvasCenterX = getWidth() / 2;
+                //     int canvasCenterY = getHeight() / 2;
+        
+                //     switch (keyCode) {
+                //         case KeyEvent.VK_UP:
+                //             moveEnvironment(0, -SPRITE_SPEED);
+                //             break;
+                //         case KeyEvent.VK_DOWN:
+                //             moveEnvironment(0, SPRITE_SPEED);
+                //             break;
+                //         case KeyEvent.VK_LEFT:
+                //             moveEnvironment(SPRITE_SPEED, 0);
+                //             break;
+                //         case KeyEvent.VK_RIGHT:
+                //             moveEnvironment(-SPRITE_SPEED, 0);
+                //             break;
+                //     }
+                // }
         
                 repaint();
             }
         
+            // private void moveEnvironment(int deltaX, int deltaY) {
+            //     if(zoomed){
+            //         synchronized (simulatorPanel) {
+            //             for (Particle particle : simulatorPanel.getParticles()) {
+            //                 particle.setX(particle.getX() + deltaX);
+            //                 particle.setY(particle.getY() + deltaY);
+            //             }
+            //         }
+            //     }
+            // }
+        
             @Override
             public void keyTyped(KeyEvent e) {
-                
+        
             }
         
             @Override
             public void keyReleased(KeyEvent e) {
-                
+        
             }
         }
     
