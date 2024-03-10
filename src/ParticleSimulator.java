@@ -359,65 +359,34 @@ public class ParticleSimulator extends JFrame {
             @Override
             public void keyPressed(KeyEvent e) {
                 int keyCode = e.getKeyCode();
-
+        
                 if(zoomed){
-                    switch (keyCode) {
-                        case KeyEvent.VK_UP:
-                            spriteY -= SPRITE_SPEED;
-                            break;
-                        case KeyEvent.VK_DOWN:
-                            spriteY += SPRITE_SPEED;
-                            break;
-                        case KeyEvent.VK_LEFT:
-                            spriteX -= SPRITE_SPEED;
-                            break;
-                        case KeyEvent.VK_RIGHT:
-                            spriteX += SPRITE_SPEED;
-                            break;
-                    }}
-        
-                // if (zoomed) {
-                //     int canvasCenterX = getWidth() / 2;
-                //     int canvasCenterY = getHeight() / 2;
-        
-                //     switch (keyCode) {
-                //         case KeyEvent.VK_UP:
-                //             moveEnvironment(0, -SPRITE_SPEED);
-                //             break;
-                //         case KeyEvent.VK_DOWN:
-                //             moveEnvironment(0, SPRITE_SPEED);
-                //             break;
-                //         case KeyEvent.VK_LEFT:
-                //             moveEnvironment(SPRITE_SPEED, 0);
-                //             break;
-                //         case KeyEvent.VK_RIGHT:
-                //             moveEnvironment(-SPRITE_SPEED, 0);
-                //             break;
-                //     }
-                // }
+                switch (keyCode) {
+                    case KeyEvent.VK_UP:
+                        spriteY -= SPRITE_SPEED;
+                        break;
+                    case KeyEvent.VK_DOWN:
+                        spriteY += SPRITE_SPEED;
+                        break;
+                    case KeyEvent.VK_LEFT:
+                        spriteX -= SPRITE_SPEED;
+                        break;
+                    case KeyEvent.VK_RIGHT:
+                        spriteX += SPRITE_SPEED;
+                        break;
+                }}
         
                 repaint();
             }
         
-            // private void moveEnvironment(int deltaX, int deltaY) {
-            //     if(zoomed){
-            //         synchronized (simulatorPanel) {
-            //             for (Particle particle : simulatorPanel.getParticles()) {
-            //                 particle.setX(particle.getX() + deltaX);
-            //                 particle.setY(particle.getY() + deltaY);
-            //             }
-            //         }
-            //     }
-            // }
-        
             @Override
             public void keyTyped(KeyEvent e) {
-        
+                
             }
         
             @Override
             public void keyReleased(KeyEvent e) {
-        
+                
             }
         }
     
@@ -441,6 +410,14 @@ public class ParticleSimulator extends JFrame {
         protected void paintComponent(Graphics g) {
             Graphics2D offScreenGraphics = (Graphics2D) offScreenBuffer.getGraphics();
             super.paintComponent(offScreenGraphics);
+            if(zoomed){
+                simulatorPanel.setLocation(spriteX, spriteY);
+                //offScreenGraphics.translate(spriteX, spriteY);
+            }
+            else {
+                simulatorPanel.setLocation(0, 0);
+                
+            }
 
             int scaledWidth = (int) (canvasWidth * zoomFactor);
             int scaledHeight = (int) (canvasHeight * zoomFactor);
@@ -455,6 +432,7 @@ public class ParticleSimulator extends JFrame {
 
             offScreenGraphics.setColor(Color.RED);
             offScreenGraphics.fillRect(spriteX, spriteY, 1, 1);
+            
 
             offScreenGraphics.scale(1.0 / zoomFactor, 1.0 / zoomFactor);
             offScreenGraphics.translate(-offsetX, -offsetY);
