@@ -340,17 +340,19 @@ public class ParticleSimulator extends JFrame {
         private final double scale_factor_height = canvasHeight / desired_height;
         private double zoomFactor = 1;
         final double zoom2 = Math.min(scale_factor_width, scale_factor_height); 
+        private int offsetX = 0;
+private int offsetY = 0;
     
         public SimulatorPanel(double deltaTime, double particleSize) {
             this.particleSize = particleSize;
             particles = new ArrayList<>();
             walls = new ArrayList<>();
-            spriteX = (canvasWidth - 5) / 2;
-            spriteY = (canvasHeight - 5) / 2;
+            spriteX = (canvasWidth) / 2;
+            spriteY = (canvasHeight) / 2;
             setFocusable(true);
             addKeyListener(new ArrowKeyListener());
             offScreenBuffer = new BufferedImage(canvasWidth, canvasHeight, BufferedImage.TYPE_INT_ARGB);
-            redPixelSprite = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+            redPixelSprite = new BufferedImage(10, 10, BufferedImage.TYPE_INT_ARGB);
             redPixelSprite.setRGB(0, 0, Color.RED.getRGB());
             setBackground(Color.gray);
         }
@@ -363,52 +365,27 @@ public class ParticleSimulator extends JFrame {
                 if(zoomed){
                     switch (keyCode) {
                         case KeyEvent.VK_UP:
-                            spriteY -= SPRITE_SPEED;
-                            break;
-                        case KeyEvent.VK_DOWN:
-                            spriteY += SPRITE_SPEED;
-                            break;
-                        case KeyEvent.VK_LEFT:
-                            spriteX -= SPRITE_SPEED;
-                            break;
-                        case KeyEvent.VK_RIGHT:
-                            spriteX += SPRITE_SPEED;
-                            break;
-                    }}
-        
-                // if (zoomed) {
-                //     int canvasCenterX = getWidth() / 2;
-                //     int canvasCenterY = getHeight() / 2;
-        
-                //     switch (keyCode) {
-                //         case KeyEvent.VK_UP:
-                //             moveEnvironment(0, -SPRITE_SPEED);
-                //             break;
-                //         case KeyEvent.VK_DOWN:
-                //             moveEnvironment(0, SPRITE_SPEED);
-                //             break;
-                //         case KeyEvent.VK_LEFT:
-                //             moveEnvironment(SPRITE_SPEED, 0);
-                //             break;
-                //         case KeyEvent.VK_RIGHT:
-                //             moveEnvironment(-SPRITE_SPEED, 0);
-                //             break;
-                //     }
-                // }
-        
-                repaint();
+                    spriteY -= SPRITE_SPEED;
+                    break;
+                case KeyEvent.VK_DOWN:
+                    spriteY += SPRITE_SPEED;
+                    break;
+                case KeyEvent.VK_LEFT:
+                    spriteX -= SPRITE_SPEED;
+                    break;
+                case KeyEvent.VK_RIGHT:
+                    spriteX += SPRITE_SPEED;
+                    break;
             }
-        
-            // private void moveEnvironment(int deltaX, int deltaY) {
-            //     if(zoomed){
-            //         synchronized (simulatorPanel) {
-            //             for (Particle particle : simulatorPanel.getParticles()) {
-            //                 particle.setX(particle.getX() + deltaX);
-            //                 particle.setY(particle.getY() + deltaY);
-            //             }
-            //         }
-            //     }
-            // }
+
+                int canvasCenterX = getWidth() / 2;
+                int canvasCenterY = getHeight() / 2;
+                offsetX = canvasCenterX - (int) (spriteX * zoomFactor) - canvasWidth / 2;
+                offsetY = canvasCenterY - (int) (spriteY * zoomFactor) - canvasHeight / 2;
+                
+                repaint();
+                }
+            }
         
             @Override
             public void keyTyped(KeyEvent e) {
@@ -442,10 +419,11 @@ public class ParticleSimulator extends JFrame {
             Graphics2D offScreenGraphics = (Graphics2D) offScreenBuffer.getGraphics();
             super.paintComponent(offScreenGraphics);
 
-            int scaledWidth = (int) (canvasWidth * zoomFactor);
-            int scaledHeight = (int) (canvasHeight * zoomFactor);
-            int offsetX = (getWidth() - scaledWidth) / 2;
-            int offsetY = (getHeight() - scaledHeight) / 2;
+            // int scaledWidth = (int) (canvasWidth * zoomFactor);
+            // int scaledHeight = (int) (canvasHeight * zoomFactor);
+            // offsetX = (getWidth() - scaledWidth) / 2;
+            // offsetY = (getHeight() - scaledHeight) / 2;
+            //System.out.println(offsetX + " " + offsetY);
             offScreenGraphics.translate(offsetX, offsetY);
             
             offScreenGraphics.scale(zoomFactor, zoomFactor);
@@ -454,7 +432,7 @@ public class ParticleSimulator extends JFrame {
             drawWalls(offScreenGraphics);
 
             offScreenGraphics.setColor(Color.RED);
-            offScreenGraphics.fillRect(spriteX, spriteY, 1, 1);
+            offScreenGraphics.fillRect(spriteX, spriteY, 10, 10);
 
             offScreenGraphics.scale(1.0 / zoomFactor, 1.0 / zoomFactor);
             offScreenGraphics.translate(-offsetX, -offsetY);
@@ -474,8 +452,15 @@ public class ParticleSimulator extends JFrame {
         private void updateZoom() {
             if (zoomed) {
                 zoomFactor = zoom2; 
+                int canvasCenterX = getWidth() / 2;
+                int canvasCenterY = getHeight() / 2;
+
+                offsetX = canvasCenterX - (int) (spriteX * zoomFactor) - canvasWidth / 2;
+                offsetY = canvasCenterY - (int) (spriteY * zoomFactor) - canvasHeight / 2;
             } else {
                 zoomFactor = 1.0; 
+                offsetX = 0;
+                offsetY = 0;
             }
         }
     
