@@ -424,7 +424,10 @@ private int offsetY = 0;
             // offsetX = (getWidth() - scaledWidth) / 2;
             // offsetY = (getHeight() - scaledHeight) / 2;
             //System.out.println(offsetX + " " + offsetY);
-            offScreenGraphics.translate(offsetX, offsetY);
+            if(zoomed)
+                offScreenGraphics.translate(offsetX+400, offsetY+200);
+            else
+                offScreenGraphics.translate(offsetX, offsetY);
             
             offScreenGraphics.scale(zoomFactor, zoomFactor);
 
