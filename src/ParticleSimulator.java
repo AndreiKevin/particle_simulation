@@ -425,7 +425,7 @@ private int offsetY = 0;
             // offsetY = (getHeight() - scaledHeight) / 2;
             //System.out.println(offsetX + " " + offsetY);
             if(zoomed)
-                offScreenGraphics.translate(offsetX+400, offsetY+200);
+                offScreenGraphics.translate(offsetX+450, offsetY+200);
             else
                 offScreenGraphics.translate(offsetX, offsetY);
             
