@@ -368,17 +368,21 @@ private int offsetY = 0;
 
                 if(zoomed){
                     switch (keyCode) {
-                        case KeyEvent.VK_UP:
-                    spriteY -= SPRITE_SPEED;
+                case KeyEvent.VK_UP:
+                    if(spriteY > 0)
+                        spriteY -= SPRITE_SPEED;
                     break;
                 case KeyEvent.VK_DOWN:
-                    spriteY += SPRITE_SPEED;
+                    if(spriteY < canvasHeight -10)
+                        spriteY += SPRITE_SPEED;
                     break;
                 case KeyEvent.VK_LEFT:
-                    spriteX -= SPRITE_SPEED;
+                    if(spriteX > 0)
+                        spriteX -= SPRITE_SPEED;
                     break;
                 case KeyEvent.VK_RIGHT:
-                    spriteX += SPRITE_SPEED;
+                    if(spriteX < canvasWidth-10)
+                        spriteX += SPRITE_SPEED;
                     break;
             }
 
