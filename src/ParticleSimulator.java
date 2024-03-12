@@ -86,7 +86,8 @@ public class ParticleSimulator extends JFrame {
     }
 
     private void setupUserInterface() {
-        dropdownBox = new JComboBox<>(new String[]{"Default singular particle", "Const Velocity + Angle", "Const Start + Varying Angle", "Const Start + Varying Velocity", "Add wall"});
+        //dropdownBox = new JComboBox<>(new String[]{"Default singular particle", "Const Velocity + Angle", "Const Start + Varying Angle", "Const Start + Varying Velocity", "Add wall"});
+        dropdownBox = new JComboBox<>(new String[]{"Default singular particle", "Const Velocity + Angle", "Const Start + Varying Angle", "Const Start + Varying Velocity"});
         numInputs = new JTextField();
         wX1 = new JTextField();
         wX2 = new JTextField();
@@ -114,7 +115,7 @@ public class ParticleSimulator extends JFrame {
         inputPanel.add(createConstantVelocityAndAnglePanel(), "Const Velocity + Angle");
         inputPanel.add(createConstantStartPointAndVaryingAnglePanel(), "Const Start + Varying Angle");
         inputPanel.add(createConstantStartPointAndVaryingVelocityPanel(), "Const Start + Varying Velocity");
-        inputPanel.add(addWall(), "Add wall");
+        //inputPanel.add(addWall(), "Add wall");
     
         JButton clearParticlesButton = new JButton("Clear Particles");
         clearParticlesButton.addActionListener(new ActionListener() {
@@ -138,13 +139,16 @@ public class ParticleSimulator extends JFrame {
             zoomed = !zoomed;
         });
 
-        JButton clearWalls = new JButton("Clear Walls");
-        clearWalls.addActionListener(new ActionListener() {
+        //JButton clearWalls = new JButton("Clear Walls");
+        /*
+         * clearWalls.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 clearWalls();
             }
         });
+         */
+        
     
         JPanel addPanel = new JPanel();
         addPanel.add(addButton);
@@ -153,7 +157,7 @@ public class ParticleSimulator extends JFrame {
         JPanel clearPanel = new JPanel();
         clearPanel.setLayout(new GridLayout(1, 2));
         clearPanel.add(clearParticlesButton);
-        clearPanel.add(clearWalls);
+        //clearPanel.add(clearWalls);
 
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new GridLayout(2, 2));
