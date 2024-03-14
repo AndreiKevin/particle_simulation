@@ -379,7 +379,7 @@ private int offsetY = 0;
                         spriteY -= SPRITE_SPEED;
                     break;
                 case KeyEvent.VK_DOWN:
-                    if(spriteY < canvasHeight)
+                    if(spriteY < canvasHeight - 1)
                         spriteY += SPRITE_SPEED;
                     break;
                 case KeyEvent.VK_LEFT:
@@ -387,7 +387,7 @@ private int offsetY = 0;
                         spriteX -= SPRITE_SPEED;
                     break;
                 case KeyEvent.VK_RIGHT:
-                    if(spriteX < canvasWidth)
+                    if(spriteX < canvasWidth - 1)
                         spriteX += SPRITE_SPEED;
                     break;
             }
