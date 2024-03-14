@@ -361,7 +361,7 @@ private int offsetY = 0;
             setBackground(Color.gray);
 
 			//Set up border walls
-			walls.add(new Wall(-10, -10, 1290, 0));
+			walls.add(new Wall(-10, -10, 1290, -10));
 			walls.add(new Wall(-10, -10, -10, 730));
 			walls.add(new Wall(1290, -10, 1290, 730));
 			walls.add(new Wall(-10, 730, 1290, 730));
@@ -502,6 +502,7 @@ private int offsetY = 0;
                 int x2 = (int) wall.getX2();
                 int y2 = getHeight() - (int) wall.getY2();
 				g2.setStroke(new BasicStroke(20));
+				g2.setPaint(Color.BLACK);
                 g2.drawLine(x1, y1, x2, y2);
             }
         }
