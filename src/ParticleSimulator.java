@@ -359,6 +359,12 @@ private int offsetY = 0;
             redPixelSprite = new BufferedImage(10, 10, BufferedImage.TYPE_INT_ARGB);
             redPixelSprite.setRGB(0, 0, Color.RED.getRGB());
             setBackground(Color.gray);
+
+			//Set up border walls
+			walls.add(new Wall(-10, -10, 1290, 0));
+			walls.add(new Wall(-10, -10, -10, 730));
+			walls.add(new Wall(1290, -10, 1290, 730));
+			walls.add(new Wall(-10, 730, 1290, 730));
         }
 
         private class ArrowKeyListener implements KeyListener {
@@ -490,11 +496,13 @@ private int offsetY = 0;
     
         private void drawWalls(Graphics g) {
             for (Wall wall : walls) {
+				Graphics2D g2 = (Graphics2D) g;
                 int x1 = (int) wall.getX1();
                 int y1 = getHeight() - (int) wall.getY1();
                 int x2 = (int) wall.getX2();
                 int y2 = getHeight() - (int) wall.getY2();
-                g.drawLine(x1, y1, x2, y2);
+				g2.setStroke(new BasicStroke(20));
+                g2.drawLine(x1, y1, x2, y2);
             }
         }
 
