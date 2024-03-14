@@ -379,7 +379,7 @@ private int offsetY = 0;
                         spriteY -= SPRITE_SPEED;
                     break;
                 case KeyEvent.VK_DOWN:
-                    if(spriteY < canvasHeight -10)
+                    if(spriteY < canvasHeight)
                         spriteY += SPRITE_SPEED;
                     break;
                 case KeyEvent.VK_LEFT:
@@ -387,7 +387,7 @@ private int offsetY = 0;
                         spriteX -= SPRITE_SPEED;
                     break;
                 case KeyEvent.VK_RIGHT:
-                    if(spriteX < canvasWidth-10)
+                    if(spriteX < canvasWidth)
                         spriteX += SPRITE_SPEED;
                     break;
             }
@@ -439,7 +439,7 @@ private int offsetY = 0;
             // offsetY = (getHeight() - scaledHeight) / 2;
             //System.out.println(offsetX + " " + offsetY);
             if(zoomed)
-                offScreenGraphics.translate(offsetX+450, offsetY+200);
+                offScreenGraphics.translate(offsetX+640, offsetY+360);
             else
                 offScreenGraphics.translate(offsetX, offsetY);
             
@@ -449,7 +449,7 @@ private int offsetY = 0;
             drawWalls(offScreenGraphics);
 
             offScreenGraphics.setColor(Color.RED);
-            offScreenGraphics.fillRect(spriteX, spriteY, 10, 10);
+            offScreenGraphics.fillRect(spriteX, spriteY, 1, 1);
 
             offScreenGraphics.scale(1.0 / zoomFactor, 1.0 / zoomFactor);
             offScreenGraphics.translate(-offsetX, -offsetY);
