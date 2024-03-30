@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ClientServer extends JFrame {
     private static final int WIDTH = 800;
@@ -19,6 +21,10 @@ public class ClientServer extends JFrame {
     private JPanel panel;
     private Rectangle redPixel;
     private int whitePixelY = 0;
+    private int clientId;
+
+    // Map to store positions of red pixels of other clients
+    private Map<Integer, Rectangle> redPixels = new HashMap<>();
 
     public ClientServer() {
         setTitle("Client");
@@ -53,6 +59,12 @@ public class ClientServer extends JFrame {
         g.setColor(RED_COLOR);
         g.fillRect(redPixel.x, redPixel.y, PIXEL_SIZE, PIXEL_SIZE);
 
+        // Draw red pixels for other clients
+        g.setColor(RED_COLOR);
+        for (Rectangle otherRedPixel : redPixels.values()) {
+            g.fillRect(otherRedPixel.x, otherRedPixel.y, PIXEL_SIZE, PIXEL_SIZE);
+        }
+
         // Draw the white pixel
         g.setColor(Color.WHITE);
         g.fillRect((WIDTH - PIXEL_SIZE) / 2, whitePixelY, PIXEL_SIZE, PIXEL_SIZE);
@@ -82,6 +94,7 @@ public class ClientServer extends JFrame {
         String[] parts = initialData.split(":");
         if (parts.length == 3 && parts[0].equals("INITIAL_DATA")) {
             // Update the position of the red pixel
+            clientId = Integer.parseInt(parts[0]);
             redPixel.x = Integer.parseInt(parts[1]);
             redPixel.y = Integer.parseInt(parts[2]);
             panel.repaint();
@@ -115,23 +128,47 @@ public class ClientServer extends JFrame {
                 int bytesRead = inputStream.read(buffer);
                 if (bytesRead != -1) {
                     String update = new String(buffer, 0, bytesRead).trim();
-                    String[] parts = update.split(":");
-                    if (parts.length == 2) {
-                        if (parts[0].equals("WHITE_PIXEL_Y")) {
-                            whitePixelY = Integer.parseInt(parts[1]);
-                            panel.repaint();
-                        } else if (parts[0].equals("RED_PIXEL_POSITION")) {
-                            String[] coordinates = parts[1].split(",");
-                            int redX = Integer.parseInt(coordinates[0]);
-                            int redY = Integer.parseInt(coordinates[1]);
-                            redPixel = new Rectangle(redX, redY, PIXEL_SIZE, PIXEL_SIZE);
-                            panel.repaint();
-                        }
-                    }
+                    receiveAndUpdatePositions(update);
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    public void receiveAndUpdatePositions(String update) {
+        String[] parts = update.split(":");
+        if (parts.length == 2) {
+            if (parts[0].equals("WHITE_PIXEL_Y")) {
+                whitePixelY = Integer.parseInt(parts[1]);
+                panel.repaint();
+            } else if (parts[0].equals("PIXEL_POSITIONS")) {
+                String[] pixelData = parts[1].split(";");
+                for (String data : pixelData) {
+                    String[] info = data.split(",");
+                    if (info.length == 3) { // Ensure that we have three elements in the split array
+                        int id = Integer.parseInt(info[0]);
+                        int newX = Integer.parseInt(info[1]);
+                        int newY = Integer.parseInt(info[2]);
+                        if (id == clientId) {
+                            // Update the position of the current client's red pixel
+                            redPixel.x = newX;
+                            redPixel.y = newY;
+                        } else {
+                            // Update the position of other clients' red pixels
+                            Rectangle otherRedPixel = redPixels.get(id);
+                            if (otherRedPixel == null) {
+                                otherRedPixel = new Rectangle(newX, newY, PIXEL_SIZE, PIXEL_SIZE);
+                                redPixels.put(id, otherRedPixel);
+                            } else {
+                                otherRedPixel.x = newX;
+                                otherRedPixel.y = newY;
+                            }
+                        }
+                    }
+                }
+                panel.repaint();
+            }
         }
     }
 

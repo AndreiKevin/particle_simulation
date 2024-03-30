@@ -89,4 +89,50 @@ public class ClientHandler implements Runnable {
     public static int getRedPixelSize() {
         return redPixelSize;
     }
+
+    public int getClientId() {
+        return clientId;
+    }
+    
+    public void sendMessage(String message) {
+        try {
+            outputStream.write(message.getBytes());
+            outputStream.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public void receiveAndUpdatePositions(String update) {
+        String[] parts = update.split(":");
+        if (parts.length == 2 && parts[0].equals("PIXEL_POSITIONS")) {
+            String[] pixelData = parts[1].split(";");
+            for (String data : pixelData) {
+                String[] info = data.split(",");
+                if (info.length == 3) { // Ensure that we have three elements in the split array
+                    int id = Integer.parseInt(info[0]);
+                    int newX = Integer.parseInt(info[1]);
+                    int newY = Integer.parseInt(info[2]);
+                    if (id == clientId) {
+                        redPixelX = newX;
+                        redPixelY = newY;
+                    } else {
+                        masterPanel.updateRedPixelPosition(id, newX, newY);
+                    }
+                }
+            }
+            masterPanel.repaint();
+        }
+    }
+    
+    public void sendDisconnectedClientNotification(int clientId) {
+        try {
+            outputStream.write(("DISCONNECTED_CLIENT:" + clientId + "\n").getBytes());
+            outputStream.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    
 }

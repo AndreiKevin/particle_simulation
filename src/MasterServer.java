@@ -17,7 +17,7 @@ public class MasterServer {
     public static void main(String[] args) {
         JFrame masterFrame = new JFrame("Master Server");
         masterFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        masterFrame.setSize(1280, 760);
+        masterFrame.setSize(300, 300);
         MasterPanel masterPanel = new MasterPanel();
         masterFrame.add(masterPanel);
         masterFrame.setVisible(true);
@@ -73,12 +73,29 @@ public class MasterServer {
     }
 
     private static void notifyClients() {
+        StringBuilder message = new StringBuilder("PIXEL_POSITIONS:" + MasterServer.whitePixelY + ";");
         for (ClientHandler client : clients) {
-            client.sendWhitePixelPosition(whitePixelY);
+            message.append(client.getClientId()).append(",").append(client.getRedPixelX()).append(",").append(client.getRedPixelY()).append(";");
+        }
+        message.append("\n");
+        for (ClientHandler client : clients) {
+            client.sendMessage(message.toString());
         }
     }
 
     public static List<ClientHandler> getClients() {
         return clients;
     }
+
+    private static void removeClient(ClientHandler client) {
+        clients.remove(client);
+        notifyClientsAboutDisconnectedClient(client.getClientId());
+    }
+    
+    private static void notifyClientsAboutDisconnectedClient(int clientId) {
+        for (ClientHandler client : clients) {
+            client.sendDisconnectedClientNotification(clientId);
+        }
+    }
+    
 }
