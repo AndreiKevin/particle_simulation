@@ -77,9 +77,10 @@ public class ClientServer extends JFrame {
             outputStream = socket.getOutputStream();
 
             // Receive initial data from the server (e.g., position of the red pixel)
+            redPixel = new Rectangle(0, 0, PIXEL_SIZE, PIXEL_SIZE);
             receiveInitialData();
 
-            redPixel = new Rectangle(0, 0, PIXEL_SIZE, PIXEL_SIZE);
+            
 
             new Thread(this::receiveUpdates).start();
         } catch (IOException e) {
@@ -92,11 +93,12 @@ public class ClientServer extends JFrame {
         int bytesRead = inputStream.read(buffer);
         String initialData = new String(buffer, 0, bytesRead);
         String[] parts = initialData.split(":");
-        if (parts.length == 3 && parts[0].equals("INITIAL_DATA")) {
+        if (parts.length >= 0 && parts[0].equals("INITIAL_DATA")) {
             // Update the position of the red pixel
-            clientId = Integer.parseInt(parts[0]);
-            redPixel.x = Integer.parseInt(parts[1]);
-            redPixel.y = Integer.parseInt(parts[2]);
+            clientId = Integer.parseInt(parts[1]);
+            redPixel.x = Integer.parseInt(parts[2]);
+            redPixel.y = Integer.parseInt(parts[3]);
+            System.out.println("CLIENTID: " + clientId);
             panel.repaint();
         }
     }
@@ -129,6 +131,7 @@ public class ClientServer extends JFrame {
                 if (bytesRead != -1) {
                     String update = new String(buffer, 0, bytesRead).trim();
                     receiveAndUpdatePositions(update);
+                    test(update);
                 }
             }
         } catch (IOException e) {
@@ -138,39 +141,46 @@ public class ClientServer extends JFrame {
 
     public void receiveAndUpdatePositions(String update) {
         String[] parts = update.split(":");
-        if (parts.length == 2) {
+        // for(int i = 0; i < parts.length; i++){
+        //     System.out.println("Parts: " + parts[i]);
+        // }
+        if (parts.length >= 1) {
             if (parts[0].equals("WHITE_PIXEL_Y")) {
+                //System.out.println("Parts0: " + parts[0]);
                 whitePixelY = Integer.parseInt(parts[1]);
                 panel.repaint();
-            } else if (parts[0].equals("PIXEL_POSITIONS")) {
-                String[] pixelData = parts[1].split(";");
-                for (String data : pixelData) {
-                    String[] info = data.split(",");
-                    if (info.length == 3) { // Ensure that we have three elements in the split array
-                        int id = Integer.parseInt(info[0]);
-                        int newX = Integer.parseInt(info[1]);
-                        int newY = Integer.parseInt(info[2]);
-                        if (id == clientId) {
-                            // Update the position of the current client's red pixel
-                            redPixel.x = newX;
-                            redPixel.y = newY;
-                        } else {
-                            // Update the position of other clients' red pixels
-                            Rectangle otherRedPixel = redPixels.get(id);
-                            if (otherRedPixel == null) {
-                                otherRedPixel = new Rectangle(newX, newY, PIXEL_SIZE, PIXEL_SIZE);
-                                redPixels.put(id, otherRedPixel);
-                            } else {
-                                otherRedPixel.x = newX;
-                                otherRedPixel.y = newY;
-                            }
-                        }
-                    }
-                }
-                panel.repaint();
-            }
+                //System.out.println("Parts2: " + parts[2]);
+            } 
         }
     }
+
+    public void test(String update){
+        String[] parts = update.split(":");
+        if (parts[0].equals("PIXEL_POSITIONS")) {
+            String[] pixelData = parts[1].split(";");
+            for (String data : pixelData) {
+                String[] info = data.split(",");
+                if (info.length >= 3) {
+                    int id = Integer.parseInt(info[0]);
+                    int newX = Integer.parseInt(info[1]);
+                    int newY = Integer.parseInt(info[2]);
+                        Rectangle otherRedPixel = redPixels.get(id);
+                        if (otherRedPixel == null) {
+                            // Create a new red pixel rectangle for this client
+                            otherRedPixel = new Rectangle(newX, newY, PIXEL_SIZE, PIXEL_SIZE);
+                            redPixels.put(id, otherRedPixel);
+                        } else {
+                            otherRedPixel.x = newX;
+                            otherRedPixel.y = newY;
+                        }
+                    
+                }
+            }
+            panel.repaint();
+        }
+    }
+    
+    
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {

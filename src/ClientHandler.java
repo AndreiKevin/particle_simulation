@@ -33,7 +33,8 @@ public class ClientHandler implements Runnable {
                 receiveAndUpdateMovement();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Client disconnected: " + clientId);
+            MasterServer.removeClient(this, masterPanel); // Remove the disconnected client
         } finally {
             try {
                 clientSocket.close();
@@ -43,10 +44,11 @@ public class ClientHandler implements Runnable {
         }
     }
 
+
     public void sendInitialData() {
         try {
-            // Send initial data to client (e.g., position of the red and white pixels)
-            outputStream.write(("INITIAL_DATA:" + MasterServer.whitePixelY + "," + redPixelX + "," + redPixelY + "\n").getBytes());
+            // Send initial data to client
+            outputStream.write(("INITIAL_DATA:" + clientId+ ":" + redPixelX + ":" + redPixelY + ":").getBytes());
             outputStream.flush();
         } catch (IOException e) {
             e.printStackTrace();
@@ -55,7 +57,7 @@ public class ClientHandler implements Runnable {
 
     public void sendWhitePixelPosition(int yPos) {
         try {
-            // Send the position of the white pixel to the client
+            // Send the position of the white pixel to the client, not sure if this is the best way for particles
             outputStream.write(("WHITE_PIXEL_Y:" + yPos + "\n").getBytes());
             outputStream.flush();
         } catch (IOException e) {
@@ -102,37 +104,15 @@ public class ClientHandler implements Runnable {
             e.printStackTrace();
         }
     }
+
     
-    public void receiveAndUpdatePositions(String update) {
-        String[] parts = update.split(":");
-        if (parts.length == 2 && parts[0].equals("PIXEL_POSITIONS")) {
-            String[] pixelData = parts[1].split(";");
-            for (String data : pixelData) {
-                String[] info = data.split(",");
-                if (info.length == 3) { // Ensure that we have three elements in the split array
-                    int id = Integer.parseInt(info[0]);
-                    int newX = Integer.parseInt(info[1]);
-                    int newY = Integer.parseInt(info[2]);
-                    if (id == clientId) {
-                        redPixelX = newX;
-                        redPixelY = newY;
-                    } else {
-                        masterPanel.updateRedPixelPosition(id, newX, newY);
-                    }
-                }
-            }
-            masterPanel.repaint();
-        }
-    }
-    
-    public void sendDisconnectedClientNotification(int clientId) {
+    public void notifyGone(int clientId) {
         try {
-            outputStream.write(("DISCONNECTED_CLIENT:" + clientId + "\n").getBytes());
+            outputStream.write((":DISCONNECTED_CLIENT:" + clientId + "\n").getBytes());
             outputStream.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-    
     
 }

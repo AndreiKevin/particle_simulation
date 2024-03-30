@@ -31,7 +31,8 @@ public class MasterServer {
                 while (true) {
                     moveWhitePixel();
                     masterPanel.repaint();
-                    notifyClients();
+                    notifyWhitePixelToClients();
+                    notifyPixelPositionsToClients();
                     try {
                         Thread.sleep(100); // Adjust the speed of the movement here
                     } catch (InterruptedException e) {
@@ -42,14 +43,15 @@ public class MasterServer {
 
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                System.out.println("New client connected: " + clientSocket.getInetAddress().getHostName());
-
+                System.out.println("New client connected");
+            
                 // Create a new client handler thread for each client
                 ClientHandler clientHandler = new ClientHandler(clientSocket, masterPanel, nextClientId++);
                 clients.add(clientHandler);
                 Thread clientThread = new Thread(clientHandler);
                 clientThread.start();
             }
+            
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -72,29 +74,44 @@ public class MasterServer {
         }
     }
 
-    private static void notifyClients() {
-        StringBuilder message = new StringBuilder("PIXEL_POSITIONS:" + MasterServer.whitePixelY + ";");
+    private static void notifyWhitePixelToClients() {
         for (ClientHandler client : clients) {
-            message.append(client.getClientId()).append(",").append(client.getRedPixelX()).append(",").append(client.getRedPixelY()).append(";");
+            StringBuilder message = new StringBuilder("WHITE_PIXEL_Y:" + MasterServer.whitePixelY + "\n");
+            client.sendMessage(message.toString());
+        }
+    }
+    
+    private static void notifyPixelPositionsToClients() {
+        StringBuilder message = new StringBuilder("PIXEL_POSITIONS:");
+        for (ClientHandler client : clients) {
+            message.append(client.getClientId())
+                   .append(",")
+                   .append(client.getRedPixelX())
+                   .append(",")
+                   .append(client.getRedPixelY())
+                   .append(";");
         }
         message.append("\n");
         for (ClientHandler client : clients) {
             client.sendMessage(message.toString());
         }
     }
+    
 
     public static List<ClientHandler> getClients() {
         return clients;
     }
 
-    private static void removeClient(ClientHandler client) {
+    public static void removeClient(ClientHandler client, MasterPanel masterPanel) {
         clients.remove(client);
-        notifyClientsAboutDisconnectedClient(client.getClientId());
+        clientGone(client.getClientId());
+        masterPanel.repaint(); // Repaint the master panel to remove the disconnected client's red pixel
     }
     
-    private static void notifyClientsAboutDisconnectedClient(int clientId) {
+    
+    private static void clientGone(int clientId) {
         for (ClientHandler client : clients) {
-            client.sendDisconnectedClientNotification(clientId);
+            client.notifyGone(clientId);
         }
     }
     
