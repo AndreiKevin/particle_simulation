@@ -8,17 +8,17 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.CountDownLatch;
 import java.util.List;
-import java.util.ArrayList;
 import java.awt.image.BufferedImage;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.io.*;
+import java.util.*;
 
 public class ParticleSimulator extends JFrame {
 
-    private final SimulatorPanel simulatorPanel;
+    private static SimulatorPanel simulatorPanel;
     private final ExecutorService executorService;
     private static double lastUpdateTime;
     private boolean zoomed = false;
@@ -28,6 +28,10 @@ public class ParticleSimulator extends JFrame {
     private int spriteX, spriteY;
     private static final int SPRITE_SPEED = 1;
     private JComboBox<String> dropdownBox;
+    private static List<ClientHandler> clients = new ArrayList<>();
+    private static int nextClientId = 1;
+    private int particleID = 1;
+    ServerSocket serverSocket;
 
     private JPanel inputPanel;
 
@@ -35,7 +39,7 @@ public class ParticleSimulator extends JFrame {
         super("Particle Simulator");
         final double targetFPS = 80.0;
         final double targetFrameTime = 1.0 / targetFPS;
-        long elapsedTime, sleepTime;
+        //long elapsedTime, sleepTime;
         final double deltaTime = 0.016;
         final double particleSize = 10;
         executorService = Executors.newWorkStealingPool();
@@ -47,7 +51,7 @@ public class ParticleSimulator extends JFrame {
         pack();
         setVisible(true);
         try {
-            ServerSocket serverSocket = new ServerSocket(12345);
+            serverSocket = new ServerSocket(12345);
             System.out.println("Master Server started.");
 
             // Start a thread to handle the movement of the white pixel
@@ -57,8 +61,8 @@ public class ParticleSimulator extends JFrame {
                     updateParticles(deltaTime, particleSize);
                     repaint();
             
-                    elapsedTime = System.nanoTime() - startTime;
-                    sleepTime = (long) ((targetFrameTime - elapsedTime / 1e9) * 1000);
+                    final long elapsedTime = System.nanoTime() - startTime;
+                    final long sleepTime = (long) ((targetFrameTime - elapsedTime / 1e9) * 1000);
             
                     if (sleepTime > 0) {
                         try {
@@ -67,8 +71,7 @@ public class ParticleSimulator extends JFrame {
                             Thread.currentThread().interrupt();
                         }
             }
-                    masterPanel.repaint();
-                    notifyWhitePixelToClients();
+                    notifyParticlesToClients();
                     notifyPixelPositionsToClients();
                 }
             }).start();
@@ -78,41 +81,71 @@ public class ParticleSimulator extends JFrame {
                 System.out.println("New client connected");
             
                 // Create a new client handler thread for each client
-                ClientHandler clientHandler = new ClientHandler(clientSocket, masterPanel, nextClientId++);
+                ClientHandler clientHandler = new ClientHandler(clientSocket, nextClientId++);
                 clients.add(clientHandler);
                 Thread clientThread = new Thread(clientHandler);
                 clientThread.start();
             }
-            
         } catch (IOException e) {
             e.printStackTrace();
-        }
-        
+        } 
     }
-    
 
-    private void gameLoop(double deltaTime, double particleSize) {
-        final double targetFPS = 80.0;
-        final double targetFrameTime = 1.0 / targetFPS;
-        long elapsedTime, sleepTime;
-    
-        while (true) {
-            long startTime = System.nanoTime();
-            updateParticles(deltaTime, particleSize);
-            repaint();
-    
-            elapsedTime = System.nanoTime() - startTime;
-            sleepTime = (long) ((targetFrameTime - elapsedTime / 1e9) * 1000);
-    
-            if (sleepTime > 0) {
-                try {
-                    Thread.sleep(sleepTime);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+    public SimulatorPanel getSimulatorPanel() {
+        return simulatorPanel;
+    }
+
+    public static void removeClient(ClientHandler client/* , SimulatorPanel masterPanel*/) {
+        clients.remove(client);
+        clientGone(client.getClientId());
+        //masterPanel.repaint(); // Repaint the master panel to remove the disconnected client's red pixel
+    }
+
+    private static void clientGone(int clientId) {
+        for (ClientHandler client : clients) {
+            client.notifyGone(clientId);
+        }
+    }
+
+
+    private static void notifyParticlesToClients() {
+        synchronized (clients) {
+            StringBuilder message = new StringBuilder("C:");
+            for (ClientHandler client : clients) {
+                message.append(client.getClientId())
+                       .append(",")
+                       .append(client.getRedPixelX())
+                       .append(",")
+                       .append(client.getRedPixelY())
+                       .append(";");
+            }
+            message.append("\n");
+            for (ClientHandler client : clients) {
+                client.sendMessage(message.toString());
+            }
+        }
+    }
+
+    private static void notifyPixelPositionsToClients() {
+        synchronized (clients) {
+            synchronized (simulatorPanel.getParticles()) {
+                for (ClientHandler client : clients) {
+                    for(Particle particle : simulatorPanel.getParticles()){
+                        StringBuilder message = new StringBuilder("P:");
+                        message.append(particle.getID())
+                            .append(",")
+                            .append((int) particle.getX())
+                            .append(",")
+                            .append((int) particle.getY())
+                            .append(";")
+                            .append("\n");
+                        client.sendMessage(message.toString());
+                    }
                 }
             }
         }
     }
+    
     
 
     private void updateParticles(double deltaTime, double particleSize) {
@@ -252,7 +285,7 @@ public class ParticleSimulator extends JFrame {
                         double Y = Double.parseDouble(singleY.getText());
                         double angle = Double.parseDouble(singleA.getText());
                         double velocity = Double.parseDouble(singleV.getText());
-                        Particle particle = new Particle(X, Y, velocity, angle);
+                        Particle particle = new Particle(particleID++, X, Y, velocity, angle);
                         simulatorPanel.addParticle(particle);
                         break;
                     case "Const Velocity + Angle":
@@ -392,7 +425,11 @@ public class ParticleSimulator extends JFrame {
         private double zoomFactor = 1;
         final double zoom2 = Math.min(scale_factor_width, scale_factor_height); 
         private int offsetX = 0;
-private int offsetY = 0;
+        private int offsetY = 0;
+        private InputStream inputStream;
+        private int redPixelX;
+        private int redPixelY;
+        private Map<Integer, Point> clientSprite;
     
         public SimulatorPanel(double deltaTime, double particleSize) {
             this.particleSize = particleSize;
@@ -414,6 +451,7 @@ private int offsetY = 0;
 			walls.add(new Wall(-10, 730, 1290, 730));
         }
 
+        
         private class ArrowKeyListener implements KeyListener {
             @Override
             public void keyPressed(KeyEvent e) {
@@ -458,6 +496,27 @@ private int offsetY = 0;
         
             }
         }
+
+        // public void receiveAndUpdateMovement() throws IOException {
+        //     byte[] buffer = new byte[1024];
+        //     int bytesRead = inputStream.read(buffer);
+        //     String movementUpdate = new String(buffer, 0, bytesRead).trim();
+        //     if (movementUpdate.startsWith("MOVE:")) {
+        //         String[] parts = movementUpdate.split(":")[1].split(",");
+        //         int clientId = Integer.parseInt(parts[0]);
+        //         int newX = Integer.parseInt(parts[1]);
+        //         int newY = Integer.parseInt(parts[2]);
+        //         redPixelX = newX;
+        //         redPixelY = newY;
+        //         updateRedPixelPosition(clientId, redPixelX, redPixelY);
+        //         repaint();
+        //     }
+        // }
+
+        // public void updateRedPixelPosition(int clientId, int newX, int newY) {
+        //     clientSprite.put(clientId, new Point(newX, newY));
+        //     repaint();
+        // }
     
         public List<Particle> getParticles() {
             return particles;
@@ -498,7 +557,7 @@ private int offsetY = 0;
             offScreenGraphics.setColor(Color.RED);
             offScreenGraphics.fillRect(spriteX, spriteY, 1, 1);
 
-            offScreenGraphics.scale(1.0 / zoomFactor, 1.0 / zoomFactor);
+            //offScreenGraphics.scale(1.0 / zoomFactor, 1.0 / zoomFactor);
             offScreenGraphics.translate(-offsetX, -offsetY);
 
             g.drawImage(offScreenBuffer, 0, 0, this);
@@ -598,7 +657,7 @@ private int offsetY = 0;
             for (int i = 0; i < n; i++) {
                 double x = startX + i * deltaX;
                 double y = startY + i * deltaY;
-                addParticle(new Particle(x, y, velocity, angle));
+                addParticle(new Particle(particleID++, x, y, velocity, angle));
             }
         }
 
@@ -606,7 +665,7 @@ private int offsetY = 0;
             double deltaAngle = (endAngle - startAngle) / (n - 1);
             for (int i = 0; i < n; i++) {
                 double angle = startAngle + i * deltaAngle;
-                addParticle(new Particle(startX, startY, velocity, angle));
+                addParticle(new Particle(particleID++, startX, startY, velocity, angle));
             }
         }
 
@@ -614,7 +673,7 @@ private int offsetY = 0;
             double deltaVelocity = (endVelocity - startVelocity) / (n - 1);
             for (int i = 0; i < n; i++) {
                 double velocity = startVelocity + i * deltaVelocity;
-                addParticle(new Particle(startX, startY, velocity, angle));
+                addParticle(new Particle(particleID++, startX, startY, velocity, angle));
             }
         }
     }

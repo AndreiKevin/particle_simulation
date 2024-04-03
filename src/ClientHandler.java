@@ -6,15 +6,13 @@ public class ClientHandler implements Runnable {
     private Socket clientSocket;
     private OutputStream outputStream;
     private InputStream inputStream;
-    private MasterPanel masterPanel;
     private int clientId;
     private int redPixelX;
     private int redPixelY;
     private static int redPixelSize = 50;
 
-    public ClientHandler(Socket clientSocket, MasterPanel masterPanel, int clientId) {
+    public ClientHandler(Socket clientSocket,  int clientId) {
         this.clientSocket = clientSocket;
-        this.masterPanel = masterPanel;
         this.clientId = clientId;
         try {
             this.outputStream = clientSocket.getOutputStream();
@@ -33,8 +31,8 @@ public class ClientHandler implements Runnable {
                 receiveAndUpdateMovement();
             }
         } catch (IOException e) {
-            System.err.println("Client disconnected: " + clientId);
-            MasterServer.removeClient(this, masterPanel); // Remove the disconnected client
+            System.err.println("Client " + clientId + " disconnected");
+            ParticleSimulator.removeClient(this); // Remove the disconnected client
         } finally {
             try {
                 clientSocket.close();
@@ -75,8 +73,8 @@ public class ClientHandler implements Runnable {
             int newY = Integer.parseInt(parts[1]);
             redPixelX = newX;
             redPixelY = newY;
-            masterPanel.updateRedPixelPosition(clientId, redPixelX, redPixelY);
-            masterPanel.repaint();
+            // masterPanel.updateRedPixelPosition(clientId, redPixelX, redPixelY);
+            // masterPanel.repaint();
         }
     }
 

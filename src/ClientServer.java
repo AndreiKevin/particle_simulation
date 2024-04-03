@@ -8,38 +8,49 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
+import java.awt.image.BufferedImage;
 
 public class ClientServer extends JFrame {
-    private static final int WIDTH = 800;
-    private static final int HEIGHT = 600;
-    private static final int PIXEL_SIZE = 50;
+    private static final int WIDTH = 1280;
+    private static final int HEIGHT = 720;
+    private static final int PIXEL_SIZE = 10;
     private static final Color RED_COLOR = Color.RED;
-
+    private static final Color GRAY_COLOR = Color.GRAY;
     private Socket socket;
     private InputStream inputStream;
     private OutputStream outputStream;
-    private JPanel panel;
+    private JPanel mainPanel;
     private Rectangle redPixel;
-    private int whitePixelY = 0;
     private int clientId;
+    private final int desired_width = 33; // the desired adventure mode in width of the canvas
+    private final int desired_height = 19; // the desired aventure mode height of the canvas
+    private final double scale_factor_width = WIDTH / desired_width;
+    private final double scale_factor_height = HEIGHT / desired_height;
+    final double zoom2 = Math.min(scale_factor_width, scale_factor_height); 
+    private int offsetX, offsetY;
+
+    private final Object redPixelsLock = new Object();
+    private final Object particlesLock = new Object();
 
     // Map to store positions of red pixels of other clients
     private Map<Integer, Rectangle> redPixels = new HashMap<>();
+    private Map<Integer, Rectangle> particles = new HashMap<>();
 
     public ClientServer() {
         setTitle("Client");
         setSize(WIDTH, HEIGHT);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        panel = new JPanel() {
+        mainPanel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 draw(g);
             }
         };
-        panel.setPreferredSize(new Dimension(WIDTH, HEIGHT));
-        add(panel);
+        mainPanel.setPreferredSize(new Dimension(WIDTH, HEIGHT));
+        mainPanel.setBackground(GRAY_COLOR); // Set background color to gray
+        add(mainPanel);
 
         setFocusable(true);
         addKeyListener(new KeyAdapter() {
@@ -56,37 +67,84 @@ public class ClientServer extends JFrame {
     }
 
     private void draw(Graphics g) {
-        g.setColor(RED_COLOR);
-        g.fillRect(redPixel.x, redPixel.y, PIXEL_SIZE, PIXEL_SIZE);
+        // Create offscreen image
+        BufferedImage offscreenImage = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D offscreenGraphics = (Graphics2D) offscreenImage.getGraphics();
+        
+        int offsetX = (WIDTH - PIXEL_SIZE) / 2 - redPixel.x;
+        int offsetY = (HEIGHT - PIXEL_SIZE) / 2 - redPixel.y;
 
+        // Draw background
+        offscreenGraphics.setColor(GRAY_COLOR);
+        offscreenGraphics.fillRect(0, 0, WIDTH, HEIGHT);
+        
+        // Draw red pixel
+        offscreenGraphics.setColor(RED_COLOR);
+        offscreenGraphics.fillRect(redPixel.x + offsetX, redPixel.y + offsetY, PIXEL_SIZE, PIXEL_SIZE);
+        
         // Draw red pixels for other clients
-        g.setColor(RED_COLOR);
-        for (Rectangle otherRedPixel : redPixels.values()) {
-            g.fillRect(otherRedPixel.x, otherRedPixel.y, PIXEL_SIZE, PIXEL_SIZE);
+        Map<Integer, Rectangle> redPixelsCopy;
+        synchronized (redPixelsLock) {
+            redPixelsCopy = new HashMap<>(redPixels);
         }
-
-        // Draw the white pixel
-        g.setColor(Color.WHITE);
-        g.fillRect((WIDTH - PIXEL_SIZE) / 2, whitePixelY, PIXEL_SIZE, PIXEL_SIZE);
-    }
-
-    public void connectToServer() {
-        try {
-            socket = new Socket("localhost", 12345);
-            inputStream = socket.getInputStream();
-            outputStream = socket.getOutputStream();
-
-            // Receive initial data from the server (e.g., position of the red pixel)
-            redPixel = new Rectangle(0, 0, PIXEL_SIZE, PIXEL_SIZE);
-            receiveInitialData();
-
-            
-
-            new Thread(this::receiveUpdates).start();
-        } catch (IOException e) {
-            e.printStackTrace();
+        for (Rectangle otherRedPixel : redPixelsCopy.values()) {
+            offscreenGraphics.fillRect(otherRedPixel.x + offsetX, otherRedPixel.y + offsetY, PIXEL_SIZE, PIXEL_SIZE);
         }
+        
+        // Draw white pixels for particles
+        Map<Integer, Rectangle> particlesCopy;
+        synchronized (particlesLock) {
+            particlesCopy = new HashMap<>(particles);
+        }
+        offscreenGraphics.setColor(Color.WHITE);
+        for (Rectangle particle : particlesCopy.values()) {
+            offscreenGraphics.fillRect(particle.x + offsetX, particle.y + offsetY, PIXEL_SIZE, PIXEL_SIZE);
+        }
+        
+        // Dispose of offscreen graphics
+        offscreenGraphics.dispose();
+        
+        // Draw offscreen image onto the main panel
+        g.drawImage(offscreenImage, 0, 0, mainPanel);
     }
+    
+    
+    
+
+    private void handleMovement(int keyCode) throws IOException {
+        int newX = redPixel.x;
+        int newY = redPixel.y;
+    
+        switch (keyCode) {
+            case KeyEvent.VK_UP:
+                newY = Math.max(0, redPixel.y - 10); // Ensure newY is within bounds
+                break;
+            case KeyEvent.VK_DOWN:
+                newY = Math.min(HEIGHT - PIXEL_SIZE, redPixel.y + 10); // Ensure newY is within bounds
+                break;
+            case KeyEvent.VK_LEFT:
+                newX = Math.max(0, redPixel.x - 10); // Ensure newX is within bounds
+                break;
+            case KeyEvent.VK_RIGHT:
+                newX = Math.min(WIDTH - PIXEL_SIZE, redPixel.x + 10); // Ensure newX is within bounds
+                break;
+        }
+    
+        // Update red pixel position
+        redPixel.setLocation(newX, newY);
+    
+        // Send updated position to the server
+        outputStream.write(("MOVE:" + newX + "," + newY + "\n").getBytes());
+        outputStream.flush();
+
+        int canvasCenterX = getWidth() / 2;
+        int canvasCenterY = getHeight() / 2;
+        offsetX = canvasCenterX - (int) (redPixel.getX() * zoom2) - WIDTH / 2;
+        offsetY = canvasCenterY - (int) (redPixel.getY() * zoom2) - HEIGHT / 2;
+    
+        mainPanel.repaint(); // Repaint the panel to reflect the updated position
+    }
+    
 
     private void receiveInitialData() throws IOException {
         byte[] buffer = new byte[1024];
@@ -99,28 +157,77 @@ public class ClientServer extends JFrame {
             redPixel.x = Integer.parseInt(parts[2]);
             redPixel.y = Integer.parseInt(parts[3]);
             System.out.println("CLIENTID: " + clientId);
-            panel.repaint();
+            mainPanel.repaint();
         }
     }
 
-    private void handleMovement(int keyCode) throws IOException {
-        switch (keyCode) {
-            case KeyEvent.VK_UP:
-                redPixel.y -= 10;
-                break;
-            case KeyEvent.VK_DOWN:
-                redPixel.y += 10;
-                break;
-            case KeyEvent.VK_LEFT:
-                redPixel.x -= 10;
-                break;
-            case KeyEvent.VK_RIGHT:
-                redPixel.x += 10;
-                break;
+    public void receiveAndUpdatePositions(String update) {
+        String[] parts = update.split(":");
+        if (parts[0].equals("C")) {
+            String[] pixelData = parts[1].split(";");
+            for (String data : pixelData) {
+                String[] info = data.split(",");
+                if (info.length >= 3) {
+                    int id = Integer.parseInt(info[0]);
+                    int newX = Integer.parseInt(info[1]);
+                    int newY = Integer.parseInt(info[2]);
+                    synchronized (redPixelsLock) {
+                        Rectangle otherRed = redPixels.get(id);
+                        if (otherRed == null) {
+                            otherRed = new Rectangle(newX, newY, PIXEL_SIZE, PIXEL_SIZE);
+                            redPixels.put(id, otherRed);
+                        } else {
+                            otherRed.x = newX;
+                            otherRed.y = newY;
+                        }
+                    }
+                }
+            }
+            mainPanel.repaint();
         }
-        outputStream.write(("MOVE:" + redPixel.x + "," + redPixel.y + "\n").getBytes());
-        outputStream.flush();
-        panel.repaint();
+    }
+    
+    public void test(String update) {
+        String[] parts = update.split(":");
+        if (parts.length >= 2 && parts[0].equals("P")) {
+            String[] pixelData = parts[1].split(";");
+            for (String data : pixelData) {
+                String[] info = data.split(",");
+                if (info.length >= 3) {
+                    int id = Integer.parseInt(info[0]);
+                    int newX = Integer.parseInt(info[1]);
+                    int newY = Integer.parseInt(info[2]);
+                    synchronized (particlesLock) {
+                        Rectangle otherParticles = particles.get(id);
+                        if (otherParticles == null) {
+                            otherParticles = new Rectangle(newX, newY, PIXEL_SIZE, PIXEL_SIZE);
+                            particles.put(id, otherParticles);
+                        } else {
+                            otherParticles.x = newX;
+                            otherParticles.y = newY;
+                        }
+                    }
+                }
+            }
+            mainPanel.repaint();
+        }
+    }
+    
+
+    public void connectToServer() {
+        try {
+            socket = new Socket("localhost", 12345);
+            inputStream = socket.getInputStream();
+            outputStream = socket.getOutputStream();
+
+            // Receive initial data from the server (e.g., position of the red pixel)
+            redPixel = new Rectangle(0, 0, PIXEL_SIZE, PIXEL_SIZE);
+            receiveInitialData();
+
+            new Thread(this::receiveUpdates).start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void receiveUpdates() {
@@ -138,49 +245,6 @@ public class ClientServer extends JFrame {
             e.printStackTrace();
         }
     }
-
-    public void receiveAndUpdatePositions(String update) {
-        String[] parts = update.split(":");
-        // for(int i = 0; i < parts.length; i++){
-        //     System.out.println("Parts: " + parts[i]);
-        // }
-        if (parts.length >= 1) {
-            if (parts[0].equals("WHITE_PIXEL_Y")) {
-                //System.out.println("Parts0: " + parts[0]);
-                whitePixelY = Integer.parseInt(parts[1]);
-                panel.repaint();
-                //System.out.println("Parts2: " + parts[2]);
-            } 
-        }
-    }
-
-    public void test(String update){
-        String[] parts = update.split(":");
-        if (parts[0].equals("PIXEL_POSITIONS")) {
-            String[] pixelData = parts[1].split(";");
-            for (String data : pixelData) {
-                String[] info = data.split(",");
-                if (info.length >= 3) {
-                    int id = Integer.parseInt(info[0]);
-                    int newX = Integer.parseInt(info[1]);
-                    int newY = Integer.parseInt(info[2]);
-                        Rectangle otherRedPixel = redPixels.get(id);
-                        if (otherRedPixel == null) {
-                            // Create a new red pixel rectangle for this client
-                            otherRedPixel = new Rectangle(newX, newY, PIXEL_SIZE, PIXEL_SIZE);
-                            redPixels.put(id, otherRedPixel);
-                        } else {
-                            otherRedPixel.x = newX;
-                            otherRedPixel.y = newY;
-                        }
-                    
-                }
-            }
-            panel.repaint();
-        }
-    }
-    
-    
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {

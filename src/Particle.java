@@ -1,11 +1,13 @@
 public class Particle {
     private double x, y, vx, vy;
+    int id;
 	//x, y = world coordinates
 	//vx, vy = movement vector
     private double velocity; 
     private double angle; 
 
-    public Particle(double x, double y, double velocity, double angle) {
+    public Particle(int id, double x, double y, double velocity, double angle) {
+        this.id = id;
         this.x = x;
         this.y = y;
         this.velocity = velocity;
@@ -17,6 +19,10 @@ public class Particle {
     public void move(double deltaTime) {
         x += vx * deltaTime; 
         y += vy * deltaTime;
+    }
+
+    public int getID(){
+        return id;
     }
 
     public double get_next_x(double deltaTime) {
