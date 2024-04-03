@@ -433,7 +433,7 @@ public class ParticleSimulator extends JFrame {
     
         public SimulatorPanel(double deltaTime, double particleSize) {
             this.particleSize = particleSize;
-            particles = new ArrayList<>();
+            particles = Collections.synchronizedList(new ArrayList<Particle>());
             walls = new ArrayList<>();
             spriteX = (canvasWidth) / 2;
             spriteY = (canvasHeight) / 2;
