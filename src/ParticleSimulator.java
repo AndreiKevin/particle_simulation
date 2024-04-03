@@ -12,6 +12,9 @@ import java.util.ArrayList;
 import java.awt.image.BufferedImage;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 public class ParticleSimulator extends JFrame {
 
