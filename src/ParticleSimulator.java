@@ -88,7 +88,9 @@ public class ParticleSimulator extends JFrame {
             
                 // Create a new client handler thread for each client
                 ClientHandler clientHandler = new ClientHandler(clientSocket, nextClientId++);
-                clients.add(clientHandler);
+                synchronized (clients) {
+                    clients.add(clientHandler);
+                }
                 Thread clientThread = new Thread(clientHandler);
                 clientThread.start();
             }
