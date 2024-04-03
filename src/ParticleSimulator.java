@@ -102,8 +102,10 @@ public class ParticleSimulator extends JFrame {
     }
 
     public static void removeClient(ClientHandler client/* , SimulatorPanel masterPanel*/) {
-        clients.remove(client);
-        clientGone(client.getClientId());
+        synchronized (clients) {
+            clients.remove(client);
+            clientGone(client.getClientId());
+        }
         //masterPanel.repaint(); // Repaint the master panel to remove the disconnected client's red pixel
     }
 
@@ -134,7 +136,7 @@ public class ParticleSimulator extends JFrame {
 
     private static void notifyPixelPositionsToClients() {
         synchronized (clients) {
-            synchronized (simulatorPanel.getParticles()) {
+            synchronized (particleLock) {
                 for (ClientHandler client : clients) {
                     for(Particle particle : simulatorPanel.getParticles()){
                         StringBuilder message = new StringBuilder("P:");
