@@ -33,6 +33,8 @@ public class ParticleSimulator extends JFrame {
     private int particleID = 1;
     ServerSocket serverSocket;
 
+    private static final Object particleLock = new Object(); //Object just for synchronized blocks
+
     private JPanel inputPanel;
 
     public ParticleSimulator() {
@@ -58,7 +60,9 @@ public class ParticleSimulator extends JFrame {
             new Thread(() -> {
                 while (true) {
                     long startTime = System.nanoTime();
-                    updateParticles(deltaTime, particleSize);
+                    synchronized (particleLock) {
+                        updateParticles(deltaTime, particleSize);
+                    }
                     repaint();
             
                     final long elapsedTime = System.nanoTime() - startTime;
@@ -71,8 +75,10 @@ public class ParticleSimulator extends JFrame {
                             Thread.currentThread().interrupt();
                         }
             }
-                    notifyParticlesToClients();
-                    notifyPixelPositionsToClients();
+                    synchronized (particleLock) {
+                        notifyParticlesToClients();
+                        notifyPixelPositionsToClients();
+                    }
                 }
             }).start();
 
@@ -271,6 +277,8 @@ public class ParticleSimulator extends JFrame {
             public void actionPerformed(ActionEvent e) {
 
                 String selectedMethod = (String) dropdownBox.getSelectedItem();
+                //Because I'm lazy
+                synchronized (particleLock) {
                 switch (selectedMethod) {
                     case "Add wall":
                         int x1 = Integer.parseInt(wX1.getText());
@@ -308,6 +316,7 @@ public class ParticleSimulator extends JFrame {
                         double endVelocity = Double.parseDouble(endVelocityField.getText());
                         simulatorPanel.addParticlesFixedStartPointAndAngle(n, 0, 0, 45, startVelocity, endVelocity);
                         break;
+                }
                 }
             }
         });
