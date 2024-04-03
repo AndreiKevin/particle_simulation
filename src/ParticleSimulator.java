@@ -30,6 +30,9 @@ public class ParticleSimulator extends JFrame {
 
     public ParticleSimulator() {
         super("Particle Simulator");
+        final double targetFPS = 80.0;
+        final double targetFrameTime = 1.0 / targetFPS;
+        long elapsedTime, sleepTime;
         final double deltaTime = 0.016;
         final double particleSize = 10;
         executorService = Executors.newWorkStealingPool();
@@ -40,7 +43,48 @@ public class ParticleSimulator extends JFrame {
         setupUserInterface();
         pack();
         setVisible(true);
-        gameLoop(deltaTime, particleSize);
+        try {
+            ServerSocket serverSocket = new ServerSocket(12345);
+            System.out.println("Master Server started.");
+
+            // Start a thread to handle the movement of the white pixel
+            new Thread(() -> {
+                while (true) {
+                    long startTime = System.nanoTime();
+                    updateParticles(deltaTime, particleSize);
+                    repaint();
+            
+                    elapsedTime = System.nanoTime() - startTime;
+                    sleepTime = (long) ((targetFrameTime - elapsedTime / 1e9) * 1000);
+            
+                    if (sleepTime > 0) {
+                        try {
+                            Thread.sleep(sleepTime);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+            }
+                    masterPanel.repaint();
+                    notifyWhitePixelToClients();
+                    notifyPixelPositionsToClients();
+                }
+            }).start();
+
+            while (true) {
+                Socket clientSocket = serverSocket.accept();
+                System.out.println("New client connected");
+            
+                // Create a new client handler thread for each client
+                ClientHandler clientHandler = new ClientHandler(clientSocket, masterPanel, nextClientId++);
+                clients.add(clientHandler);
+                Thread clientThread = new Thread(clientHandler);
+                clientThread.start();
+            }
+            
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        
     }
     
 
