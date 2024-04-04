@@ -642,8 +642,10 @@ public class ParticleSimulator extends JFrame {
 
         private void drawSprites(Graphics g) {
             for (ClientHandler c : clients) {
-                g.setColor(c.getColor());
-                g.fillRect(c.getX(), c.getY(), 1, 1);
+                if (c.isActive()) {
+                    g.setColor(c.getColor());
+                    g.fillRect(c.getX(), c.getY(), 10, 10);
+                }
             }
         }
 

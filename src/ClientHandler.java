@@ -122,6 +122,7 @@ public class ClientHandler implements Runnable {
 
     public void receiveAndUpdateMovement() throws IOException {
         byte[] buffer = new byte[1024];
+        System.out.println("Waiting for client " + clientId + " to move");
         int bytesRead = inputStream.read(buffer);
         if (bytesRead == -1) {
             // The client has disconnected 
@@ -131,6 +132,7 @@ public class ClientHandler implements Runnable {
             return;
         }
         String movementUpdate = new String(buffer, 0, bytesRead).trim();
+        System.out.println("From client " + clientId + ": " + movementUpdate);
         if (movementUpdate.startsWith("MOVE:")) {
             String[] parts = movementUpdate.split(":")[1].split(",");
             int newX = Integer.parseInt(parts[0]);
@@ -146,7 +148,7 @@ public class ClientHandler implements Runnable {
     private void notifySpritePositionsChangedToClients(int clientId, int x, int y) {
         synchronized (clients) {
             for (ClientHandler client : clients) {
-                if (client.getClientId() != this.clientId) {
+                if (client.getClientId() != this.clientId && client.isActive()) {
                     sendSpriteMessageToOtherClient(client, clientId, x, y);
                 }
             }
@@ -174,7 +176,17 @@ public class ClientHandler implements Runnable {
     }
 
     public boolean isActive() {
-        return this.active;
+        boolean temp = false;
+        try {
+            activeSem.acquire();
+            temp = this.active;
+            activeSem.release();
+            
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        
+        return temp;
     }
 
     public void setActive(int clientId, Socket clientSocket) {
