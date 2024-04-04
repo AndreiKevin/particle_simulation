@@ -171,7 +171,6 @@ public class ClientHandler implements Runnable {
         // Change to a new clientid but keep the color and position of the old client
         this.clientId = clientId;
         // Continue receiving position updates from the new client
-        this.active = active;
         this.clientSocket = clientSocket;
         try {
             this.outputStream = clientSocket.getOutputStream();
@@ -179,7 +178,7 @@ public class ClientHandler implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        this.run();
+        this.active = active;
     }
     
     public void sendMessage(String message) {

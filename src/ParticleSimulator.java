@@ -96,6 +96,7 @@ public class ParticleSimulator extends JFrame {
             ParticleSimulator.clients.add(blueClient);
 
             while (true) {
+                System.out.println("clientCount: " + clientCount);
                 if (clientCount < 3) {
                     System.out.println("Waiting for new client...");
                     Socket clientSocket = serverSocket.accept();
@@ -105,14 +106,11 @@ public class ParticleSimulator extends JFrame {
                         if (!client.isActive()) {
                             client.setActive(true, nextClientId, clientSocket);
                             nextClientId++;
-                            ParticleSimulator.clientCount++;
+                            ParticleSimulator.clientCount++; // consider synchronizing this
                             break;
                         }
                     }
-                } else {
-                    System.out.println("Client list full!");
                 }
-                System.out.println("This should not happen. Stopped waiting for clients.");
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -125,6 +123,7 @@ public class ParticleSimulator extends JFrame {
 
     public static void removeClient(ClientHandler client) {
         synchronized (clients) {
+            System.out.print("clientCount--");
             ParticleSimulator.clientCount--;
             clientGone(client.getClientId());
         }
