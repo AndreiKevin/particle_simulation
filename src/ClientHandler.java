@@ -56,7 +56,7 @@ public class ClientHandler implements Runnable {
     public void sendWhitePixelPosition(int yPos) {
         try {
             // Send the position of the white pixel to the client, not sure if this is the best way for particles
-            outputStream.write(("WHITE_PIXEL_Y:" + yPos + "\n").getBytes());
+            outputStream.write(("WHITE_PIXEL_Y:" + yPos + ";").getBytes());
             outputStream.flush();
         } catch (IOException e) {
             e.printStackTrace();
@@ -106,7 +106,7 @@ public class ClientHandler implements Runnable {
     
     public void notifyGone(int clientId) {
         try {
-            outputStream.write((":DISCONNECTED_CLIENT:" + clientId + "\n").getBytes());
+            outputStream.write(("DISCONNECTED_CLIENT:" + clientId + ";").getBytes());
             outputStream.flush();
         } catch (IOException e) {
             e.printStackTrace();
