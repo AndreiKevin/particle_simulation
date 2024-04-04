@@ -34,12 +34,9 @@ public class ClientHandler implements Runnable {
                 activeSem.acquire();
                 if (active) {
                     activeSem.release();
-                    System.out.println("Client is now active: " + clientId);
                     try {
-                        System.out.println("Trying to send initial data: " + clientId);
                         sendInitialData(); // Send initial data to the client
                         while (active) {
-                            System.out.println("active and waiting for movement: " + clientId);
                             // Receive movement updates from the client and update the red pixel position
                             receiveAndUpdateMovement();
                         }

@@ -5,6 +5,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.CountDownLatch;
 import java.util.List;
@@ -33,6 +34,7 @@ public class ParticleSimulator extends JFrame {
     private int particleID = 1;
     ServerSocket serverSocket;
     private static int clientCount = 0;
+    private static Semaphore clientCountSem = new Semaphore(1);
 
     private static final Object particleLock = new Object(); //Object just for synchronized blocks
 
@@ -96,20 +98,34 @@ public class ParticleSimulator extends JFrame {
             ParticleSimulator.clients.add(blueClient);
 
             while (true) {
-                System.out.println("clientCount: " + clientCount);
-                if (clientCount < 3) {
-                    System.out.println("Waiting for new client...");
-                    Socket clientSocket = serverSocket.accept();
-                    System.out.println("New client connected");
-                
-                    for (ClientHandler client : clients){
-                        if (!client.isActive()) {
-                            client.setActive(nextClientId, clientSocket);
-                            nextClientId++;
-                            ParticleSimulator.clientCount++; // consider synchronizing this
-                            break;
+                try {
+                    clientCountSem.acquire();
+                    if (clientCount < 3) {
+                        clientCountSem.release();
+                        System.out.println("Waiting for new client...");
+                        Socket clientSocket = serverSocket.accept();
+                        System.out.println("New client connected");
+                    
+                        for (ClientHandler client : clients){
+                            if (!client.isActive()) {
+                                client.setActive(nextClientId, clientSocket);
+                                nextClientId++;
+                                try {
+                                    clientCountSem.acquire();
+                                    ParticleSimulator.clientCount++; // consider synchronizing this
+                                    System.out.println("Current Client Count: " + clientCount);
+                                    clientCountSem.release();
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                                break;
+                            }
                         }
+                    } else {
+                        clientCountSem.release();
                     }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
         } catch (IOException e) {
@@ -122,10 +138,15 @@ public class ParticleSimulator extends JFrame {
     }
 
     public static void removeClient(ClientHandler client) {
-        System.out.println("About to clientCount--");
         synchronized (clients) {
             System.out.print("clientCount--");
-            ParticleSimulator.clientCount--;
+            try {
+                clientCountSem.acquire();
+                ParticleSimulator.clientCount--;
+                clientCountSem.release();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             clientGone(client.getClientId());
         }
     }
