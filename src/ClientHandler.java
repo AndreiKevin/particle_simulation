@@ -78,7 +78,7 @@ public class ClientHandler implements Runnable {
 
     public void sendSpriteMessageToThisClient(int clientIdThatMoved, int x, int y) {
         StringBuilder message = new StringBuilder("C:");
-        message.append(this.clientId)
+        message.append(clientIdThatMoved)
                 .append(",")
                 .append(this.getX())
                 .append(",")
