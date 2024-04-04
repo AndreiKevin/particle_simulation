@@ -119,25 +119,27 @@ public class ParticleSimulator extends JFrame {
         return simulatorPanel;
     }
 
-    public static void removeClient(ClientHandler client/* , SimulatorPanel masterPanel*/) {
+    public static void removeClient(ClientHandler client) {
         synchronized (clients) {
             ParticleSimulator.clientCount--;
-            clients.remove(client);
             clientGone(client.getClientId());
         }
-        //masterPanel.repaint(); // Repaint the master panel to remove the disconnected client's red pixel
     }
 
     private static void clientGone(int clientId) {
         for (ClientHandler client : clients) {
-            client.notifyGone(clientId);
+            if (client.isActive()) {
+                client.notifyGone(clientId);
+            }
         }
     }
 
     private static void notifyNewParticleToClients(Particle newParticles) {
         synchronized (clients) { // you cannot remove or add clients while we are still sending the new particles? do we need this?
             for (ClientHandler client : clients) {
-                client.sendParticleMessage(newParticles);
+                if (client.isActive()) {
+                    client.sendParticleMessage(newParticles);
+                }
             }
         }
     }

@@ -37,10 +37,11 @@ public class ClientHandler implements Runnable {
                     }
                 } catch (IOException e) {
                     System.err.println("Client " + clientId + " disconnected");
-                    ParticleSimulator.removeClient(this); // Remove the disconnected client
                 } finally {
                     try {
+                        System.out.println("Closing socket of client: " + clientId);
                         clientSocket.close();
+                        ParticleSimulator.removeClient(this); // Remove the disconnected client
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -112,6 +113,13 @@ public class ClientHandler implements Runnable {
     public void receiveAndUpdateMovement() throws IOException {
         byte[] buffer = new byte[1024];
         int bytesRead = inputStream.read(buffer);
+        if (bytesRead == -1) {
+            // The client has disconnected 
+            // if the bytesRead is -1 
+            // This is a signal by TCP that the socket connection if finished
+            active = false;
+            return;
+        }
         String movementUpdate = new String(buffer, 0, bytesRead).trim();
         if (movementUpdate.startsWith("MOVE:")) {
             String[] parts = movementUpdate.split(":")[1].split(",");
@@ -186,7 +194,7 @@ public class ClientHandler implements Runnable {
     public void notifyGone(int clientId) {
         try {
             if (clientId == this.clientId) {
-                this.active = false;
+                System.out.println("Client " + clientId + " disconnected");
             } else {
                 outputStream.write(("DISCONNECTED_CLIENT:" + clientId + ";").getBytes());
                 outputStream.flush();
