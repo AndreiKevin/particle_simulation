@@ -2,6 +2,7 @@ import java.awt.Color;
 import java.io.*;
 import java.net.Socket;
 import java.util.*;
+import java.util.concurrent.Semaphore;
 
 public class ClientHandler implements Runnable {
     private Socket clientSocket;
@@ -12,6 +13,7 @@ public class ClientHandler implements Runnable {
     private int y;
     private Color color;
     private boolean active;
+    private Semaphore activeSem = new Semaphore(1);
     private static int redPixelSize = 50;
     private List<Particle> particles;
     private Object particleLock;
@@ -28,24 +30,35 @@ public class ClientHandler implements Runnable {
     @Override
     public void run() {
         while(true) {
-            if (active) {
-                try {
-                    sendInitialData(); // Send initial data to the client
-                    while (active) {
-                        // Receive movement updates from the client and update the red pixel position
-                        receiveAndUpdateMovement();
-                    }
-                } catch (IOException e) {
-                    System.err.println("Client " + clientId + " disconnected");
-                } finally {
+            try {
+                activeSem.acquire();
+                if (active) {
+                    activeSem.release();
+                    System.out.println("Client is now active: " + clientId);
                     try {
-                        System.out.println("Closing socket of client: " + clientId);
-                        clientSocket.close();
-                        ParticleSimulator.removeClient(this); // Remove the disconnected client
+                        System.out.println("Trying to send initial data: " + clientId);
+                        sendInitialData(); // Send initial data to the client
+                        while (active) {
+                            System.out.println("active and waiting for movement: " + clientId);
+                            // Receive movement updates from the client and update the red pixel position
+                            receiveAndUpdateMovement();
+                        }
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        System.err.println("Client " + clientId + " disconnected");
+                    } finally {
+                        try {
+                            System.out.println("Closing socket of client: " + clientId);
+                            clientSocket.close();
+                            ParticleSimulator.removeClient(this); // Remove the disconnected client
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
+                } else {
+                    activeSem.release();
                 }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
     }
@@ -167,7 +180,7 @@ public class ClientHandler implements Runnable {
         return this.active;
     }
 
-    public void setActive(boolean active, int clientId, Socket clientSocket) {
+    public void setActive(int clientId, Socket clientSocket) {
         // Change to a new clientid but keep the color and position of the old client
         this.clientId = clientId;
         // Continue receiving position updates from the new client
@@ -178,7 +191,13 @@ public class ClientHandler implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        this.active = active;
+        try {
+            activeSem.acquire();
+            this.active = true;
+            activeSem.release();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
     
     public void sendMessage(String message) {

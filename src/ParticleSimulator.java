@@ -104,7 +104,7 @@ public class ParticleSimulator extends JFrame {
                 
                     for (ClientHandler client : clients){
                         if (!client.isActive()) {
-                            client.setActive(true, nextClientId, clientSocket);
+                            client.setActive(nextClientId, clientSocket);
                             nextClientId++;
                             ParticleSimulator.clientCount++; // consider synchronizing this
                             break;
@@ -122,6 +122,7 @@ public class ParticleSimulator extends JFrame {
     }
 
     public static void removeClient(ClientHandler client) {
+        System.out.println("About to clientCount--");
         synchronized (clients) {
             System.out.print("clientCount--");
             ParticleSimulator.clientCount--;
