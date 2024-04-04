@@ -97,6 +97,7 @@ public class ParticleSimulator extends JFrame {
 
             while (true) {
                 if (clientCount < 3) {
+                    System.out.println("Waiting for new client...");
                     Socket clientSocket = serverSocket.accept();
                     System.out.println("New client connected");
                 
@@ -108,7 +109,10 @@ public class ParticleSimulator extends JFrame {
                             break;
                         }
                     }
+                } else {
+                    System.out.println("Client list full!");
                 }
+                System.out.println("This should not happen. Stopped waiting for clients.");
             }
         } catch (IOException e) {
             e.printStackTrace();
