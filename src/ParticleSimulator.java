@@ -76,24 +76,21 @@ public class ParticleSimulator extends JFrame {
                             Thread.currentThread().interrupt();
                         }
             }
-                    synchronized (particleLock) {
-                        notifySpritePositionsToClients();
-                    }
                 }
             }).start();
 
             // create all the clients and make them just wait
-            ClientHandler redClient = new ClientHandler(Color.RED, false, simulatorPanel.getParticles(), particleLock);
+            ClientHandler redClient = new ClientHandler(Color.RED, false, simulatorPanel.getParticles(), particleLock, clients);
             Thread redThread = new Thread(redClient);
             redThread.start();
             ParticleSimulator.clients.add(redClient);
 
-            ClientHandler greenClient = new ClientHandler(Color.GREEN, false, simulatorPanel.getParticles(), particleLock);
+            ClientHandler greenClient = new ClientHandler(Color.GREEN, false, simulatorPanel.getParticles(), particleLock, clients);
             Thread greenThread = new Thread(greenClient);
             greenThread.start();
             ParticleSimulator.clients.add(greenClient);
 
-            ClientHandler blueClient = new ClientHandler(Color.BLUE, false, simulatorPanel.getParticles(), particleLock);
+            ClientHandler blueClient = new ClientHandler(Color.BLUE, false, simulatorPanel.getParticles(), particleLock, clients);
             Thread blueThread = new Thread(blueClient);
             blueThread.start();
             ParticleSimulator.clients.add(blueClient);
@@ -137,25 +134,7 @@ public class ParticleSimulator extends JFrame {
         }
     }
 
-
-    private static void notifySpritePositionsToClients() {
-        synchronized (clients) {
-            StringBuilder message = new StringBuilder("C:");
-            for (ClientHandler client : clients) {
-                message.append(client.getClientId())
-                       .append(",")
-                       .append(client.getX())
-                       .append(",")
-                       .append(client.getY())
-                       .append(";");
-            }
-            for (ClientHandler client : clients) {
-                client.sendMessage(message.toString());
-            }
-        }
-    }
-
-    private static void notifyNewParticleToClients(Particle newParticles) { on add new particle
+    private static void notifyNewParticleToClients(Particle newParticles) {
         synchronized (clients) { // you cannot remove or add clients while we are still sending the new particles? do we need this?
             for (ClientHandler client : clients) {
                 client.sendParticleMessage(newParticles);

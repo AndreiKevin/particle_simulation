@@ -15,19 +15,14 @@ public class ClientHandler implements Runnable {
     private static int redPixelSize = 50;
     private List<Particle> particles;
     private Object particleLock;
+    private List<ClientHandler> clients;
 
-    public ClientHandler(Color color, boolean active, List<Particle> particles, Object particleLock) {
+    public ClientHandler(Color color, boolean active, List<Particle> particles, Object particleLock, List<ClientHandler> clients) {
         this.color = color;
         this.active = active;
         this.particles = particles;
         this.particleLock = particleLock;
-
-        try {
-            this.outputStream = clientSocket.getOutputStream();
-            this.inputStream = clientSocket.getInputStream();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        this.clients = clients;
     }
 
     @Override
@@ -69,11 +64,47 @@ public class ClientHandler implements Runnable {
         this.sendMessage(message.toString());
     }
 
+    public void sendSpriteMessageToOtherClient(ClientHandler clientToSendTo, int clientIdThatMoved, int x, int y) {
+        StringBuilder message = new StringBuilder("C:");
+        message.append(this.clientId)
+                .append(",")
+                .append(this.getX())
+                .append(",")
+                .append(this.getY())
+                .append(";");
+        // using the ClientHandler of another client, we send the message (so that we send it to the other client and not to ourselves)
+        clientToSendTo.sendMessage(message.toString());
+    }
+
+    public void sendSpriteMessageToThisClient(int clientIdThatMoved, int x, int y) {
+        StringBuilder message = new StringBuilder("C:");
+        message.append(this.clientId)
+                .append(",")
+                .append(this.getX())
+                .append(",")
+                .append(this.getY())
+                .append(";");
+        // using the ClientHandler of another client, we send the message (so that we send it to the other client and not to ourselves)
+        for (ClientHandler client : clients) {
+            if (client.getClientId() == clientIdThatMoved) {
+                client.sendMessage(message.toString());
+            }
+        }
+    }
+
     // This function sends all the current particles to the client
     public void sendInitialData() {
         synchronized (particleLock) {
             for (Particle particle : particles) {
                 sendParticleMessage(particle);
+            }
+        }
+        // send sprite positions of other clients to this client
+        synchronized (clients) {
+            for (ClientHandler client : clients) {
+                if (client.getClientId() != this.clientId) {
+                    sendSpriteMessageToThisClient(this.clientId, client.getX(), client.getY());
+                }
             }
         }
     }
@@ -88,8 +119,19 @@ public class ClientHandler implements Runnable {
             int newY = Integer.parseInt(parts[1]);
             this.x = newX;
             this.y = newY;
-            // masterPanel.updateRedPixelPosition(clientId, redPixelX, redPixelY);
-            // masterPanel.repaint();
+            
+            // notify the other clients about the change
+            notifySpritePositionsChangedToClients(this.clientId, newX, newY);
+        }
+    }
+
+    private void notifySpritePositionsChangedToClients(int clientId, int x, int y) {
+        synchronized (clients) {
+            for (ClientHandler client : clients) {
+                if (client.getClientId() != this.clientId) {
+                    sendSpriteMessageToOtherClient(client, clientId, x, y);
+                }
+            }
         }
     }
 
@@ -123,6 +165,12 @@ public class ClientHandler implements Runnable {
         // Continue receiving position updates from the new client
         this.active = active;
         this.clientSocket = clientSocket;
+        try {
+            this.outputStream = clientSocket.getOutputStream();
+            this.inputStream = clientSocket.getInputStream();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         this.run();
     }
     
