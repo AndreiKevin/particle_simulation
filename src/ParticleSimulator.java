@@ -155,29 +155,13 @@ public class ParticleSimulator extends JFrame {
         }
     }
 
-    private static void notifyParticlePositionsToClients() {
-        synchronized (clients) {
-            synchronized (particleLock) {
-                for (ClientHandler client : clients) {
-                    for(Particle particle : simulatorPanel.getParticles()){
-                        StringBuilder message = new StringBuilder("P:");
-                        message.append(particle.getID())
-                            .append(",")
-                            .append((int) particle.getX())
-                            .append(",")
-                            .append((int) particle.getY())
-                            .append(",")
-                            .append((double) particle.getVelocity())
-                            .append(",")
-                            .append((double) particle.getAngle())
-                            .append(";");
-                        client.sendMessage(message.toString());
-                    }
-                }
+    private static void notifyNewParticleToClients(Particle newParticles) { on add new particle
+        synchronized (clients) { // you cannot remove or add clients while we are still sending the new particles? do we need this?
+            for (ClientHandler client : clients) {
+                client.sendParticleMessage(newParticles);
             }
         }
     }
-    
     
 
     private void updateParticles(double deltaTime, double particleSize) {
@@ -559,6 +543,7 @@ public class ParticleSimulator extends JFrame {
     
         public void addParticle(Particle particle) {
             particles.add(particle);
+            notifyNewParticleToClients(particle);
         }
     
         public void addWall(Wall wall) {

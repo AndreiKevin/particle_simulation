@@ -54,22 +54,26 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    public void sendParticleMessage(Particle particle) {
+        StringBuilder message = new StringBuilder("P:");
+        message.append(particle.getID())
+            .append(",")
+            .append((int) particle.getX())
+            .append(",")
+            .append((int) particle.getY())
+            .append(",")
+            .append((double) particle.getVelocity())
+            .append(",")
+            .append((double) particle.getAngle())
+            .append(";");
+        this.sendMessage(message.toString());
+    }
+
     // This function sends all the current particles to the client
     public void sendInitialData() {
         synchronized (particleLock) {
-            for(Particle particle : particles){
-                StringBuilder message = new StringBuilder("P:");
-                message.append(particle.getID())
-                    .append(",")
-                    .append((int) particle.getX())
-                    .append(",")
-                    .append((int) particle.getY())
-                    .append(",")
-                    .append((double) particle.getVelocity())
-                    .append(",")
-                    .append((double) particle.getAngle())
-                    .append(";");
-                this.sendMessage(message.toString());
+            for (Particle particle : particles) {
+                sendParticleMessage(particle);
             }
         }
     }
