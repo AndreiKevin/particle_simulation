@@ -1,3 +1,4 @@
+import java.awt.Color;
 import java.io.*;
 import java.net.Socket;
 import java.util.*;
@@ -7,13 +8,20 @@ public class ClientHandler implements Runnable {
     private OutputStream outputStream;
     private InputStream inputStream;
     private int clientId;
-    private int redPixelX;
-    private int redPixelY;
+    private int x;
+    private int y;
+    private Color color;
+    private boolean active;
     private static int redPixelSize = 50;
+    private List<Particle> particles;
+    private Object particleLock;
 
-    public ClientHandler(Socket clientSocket,  int clientId) {
-        this.clientSocket = clientSocket;
-        this.clientId = clientId;
+    public ClientHandler(Color color, boolean active, List<Particle> particles, Object particleLock) {
+        this.color = color;
+        this.active = active;
+        this.particles = particles;
+        this.particleLock = particleLock;
+
         try {
             this.outputStream = clientSocket.getOutputStream();
             this.inputStream = clientSocket.getInputStream();
@@ -24,42 +32,45 @@ public class ClientHandler implements Runnable {
 
     @Override
     public void run() {
-        try {
-            sendInitialData(); // Send initial data to the client
-            while (true) {
-                // Receive movement updates from the client and update the red pixel position
-                receiveAndUpdateMovement();
-            }
-        } catch (IOException e) {
-            System.err.println("Client " + clientId + " disconnected");
-            ParticleSimulator.removeClient(this); // Remove the disconnected client
-        } finally {
-            try {
-                clientSocket.close();
-            } catch (IOException e) {
-                e.printStackTrace();
+        while(true) {
+            if (active) {
+                try {
+                    sendInitialData(); // Send initial data to the client
+                    while (active) {
+                        // Receive movement updates from the client and update the red pixel position
+                        receiveAndUpdateMovement();
+                    }
+                } catch (IOException e) {
+                    System.err.println("Client " + clientId + " disconnected");
+                    ParticleSimulator.removeClient(this); // Remove the disconnected client
+                } finally {
+                    try {
+                        clientSocket.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
             }
         }
     }
 
-
+    // This function sends all the current particles to the client
     public void sendInitialData() {
-        try {
-            // Send initial data to client
-            outputStream.write(("INITIAL_DATA:" + clientId+ ":" + redPixelX + ":" + redPixelY + ":").getBytes());
-            outputStream.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void sendWhitePixelPosition(int yPos) {
-        try {
-            // Send the position of the white pixel to the client, not sure if this is the best way for particles
-            outputStream.write(("WHITE_PIXEL_Y:" + yPos + ";").getBytes());
-            outputStream.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
+        synchronized (particleLock) {
+            for(Particle particle : particles){
+                StringBuilder message = new StringBuilder("P:");
+                message.append(particle.getID())
+                    .append(",")
+                    .append((int) particle.getX())
+                    .append(",")
+                    .append((int) particle.getY())
+                    .append(",")
+                    .append((double) particle.getVelocity())
+                    .append(",")
+                    .append((double) particle.getAngle())
+                    .append(";");
+                this.sendMessage(message.toString());
+            }
         }
     }
 
@@ -71,27 +82,44 @@ public class ClientHandler implements Runnable {
             String[] parts = movementUpdate.split(":")[1].split(",");
             int newX = Integer.parseInt(parts[0]);
             int newY = Integer.parseInt(parts[1]);
-            redPixelX = newX;
-            redPixelY = newY;
+            this.x = newX;
+            this.y = newY;
             // masterPanel.updateRedPixelPosition(clientId, redPixelX, redPixelY);
             // masterPanel.repaint();
         }
     }
 
-    public int getRedPixelX() {
-        return redPixelX;
+    public int getX() {
+        return this.x;
     }
 
-    public int getRedPixelY() {
-        return redPixelY;
+    public int getY() {
+        return this.y;
     }
 
-    public static int getRedPixelSize() {
+    public static int getSize() {
         return redPixelSize;
     }
 
     public int getClientId() {
-        return clientId;
+        return this.clientId;
+    }
+
+    public Color getColor() {
+        return this.color;
+    }
+
+    public boolean isActive() {
+        return this.active;
+    }
+
+    public void setActive(boolean active, int clientId, Socket clientSocket) {
+        // Change to a new clientid but keep the color and position of the old client
+        this.clientId = clientId;
+        // Continue receiving position updates from the new client
+        this.active = active;
+        this.clientSocket = clientSocket;
+        this.run();
     }
     
     public void sendMessage(String message) {
@@ -103,14 +131,16 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    
     public void notifyGone(int clientId) {
         try {
-            outputStream.write(("DISCONNECTED_CLIENT:" + clientId + ";").getBytes());
-            outputStream.flush();
+            if (clientId == this.clientId) {
+                this.active = false;
+            } else {
+                outputStream.write(("DISCONNECTED_CLIENT:" + clientId + ";").getBytes());
+                outputStream.flush();
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-    
 }

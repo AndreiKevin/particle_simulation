@@ -32,6 +32,7 @@ public class ParticleSimulator extends JFrame {
     private static int nextClientId = 1;
     private int particleID = 1;
     ServerSocket serverSocket;
+    private static int clientCount = 0;
 
     private static final Object particleLock = new Object(); //Object just for synchronized blocks
 
@@ -76,23 +77,41 @@ public class ParticleSimulator extends JFrame {
                         }
             }
                     synchronized (particleLock) {
-                        notifyParticlesToClients();
-                        notifyPixelPositionsToClients();
+                        notifySpritePositionsToClients();
                     }
                 }
             }).start();
 
+            // create all the clients and make them just wait
+            ClientHandler redClient = new ClientHandler(Color.RED, false, simulatorPanel.getParticles(), particleLock);
+            Thread redThread = new Thread(redClient);
+            redThread.start();
+            ParticleSimulator.clients.add(redClient);
+
+            ClientHandler greenClient = new ClientHandler(Color.GREEN, false, simulatorPanel.getParticles(), particleLock);
+            Thread greenThread = new Thread(greenClient);
+            greenThread.start();
+            ParticleSimulator.clients.add(greenClient);
+
+            ClientHandler blueClient = new ClientHandler(Color.BLUE, false, simulatorPanel.getParticles(), particleLock);
+            Thread blueThread = new Thread(blueClient);
+            blueThread.start();
+            ParticleSimulator.clients.add(blueClient);
+
             while (true) {
-                Socket clientSocket = serverSocket.accept();
-                System.out.println("New client connected");
-            
-                // Create a new client handler thread for each client
-                ClientHandler clientHandler = new ClientHandler(clientSocket, nextClientId++);
-                synchronized (clients) {
-                    clients.add(clientHandler);
+                if (clientCount < 3) {
+                    Socket clientSocket = serverSocket.accept();
+                    System.out.println("New client connected");
+                
+                    for (ClientHandler client : clients){
+                        if (!client.isActive()) {
+                            client.setActive(true, nextClientId, clientSocket);
+                            nextClientId++;
+                            ParticleSimulator.clientCount++;
+                            break;
+                        }
+                    }
                 }
-                Thread clientThread = new Thread(clientHandler);
-                clientThread.start();
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -105,6 +124,7 @@ public class ParticleSimulator extends JFrame {
 
     public static void removeClient(ClientHandler client/* , SimulatorPanel masterPanel*/) {
         synchronized (clients) {
+            ParticleSimulator.clientCount--;
             clients.remove(client);
             clientGone(client.getClientId());
         }
@@ -118,15 +138,15 @@ public class ParticleSimulator extends JFrame {
     }
 
 
-    private static void notifyParticlesToClients() {
+    private static void notifySpritePositionsToClients() {
         synchronized (clients) {
             StringBuilder message = new StringBuilder("C:");
             for (ClientHandler client : clients) {
                 message.append(client.getClientId())
                        .append(",")
-                       .append(client.getRedPixelX())
+                       .append(client.getX())
                        .append(",")
-                       .append(client.getRedPixelY())
+                       .append(client.getY())
                        .append(";");
             }
             for (ClientHandler client : clients) {
@@ -135,7 +155,7 @@ public class ParticleSimulator extends JFrame {
         }
     }
 
-    private static void notifyPixelPositionsToClients() {
+    private static void notifyParticlePositionsToClients() {
         synchronized (clients) {
             synchronized (particleLock) {
                 for (ClientHandler client : clients) {
@@ -568,9 +588,10 @@ public class ParticleSimulator extends JFrame {
 
             drawParticles(offScreenGraphics, particleSize);
             drawWalls(offScreenGraphics);
+            drawSprites(offScreenGraphics);
 
-            offScreenGraphics.setColor(Color.RED);
-            offScreenGraphics.fillRect(spriteX, spriteY, 1, 1);
+            // offScreenGraphics.setColor(Color.RED);
+            // offScreenGraphics.fillRect(spriteX, spriteY, 1, 1);
 
             //offScreenGraphics.scale(1.0 / zoomFactor, 1.0 / zoomFactor);
             offScreenGraphics.translate(-offsetX, -offsetY);
@@ -625,6 +646,13 @@ public class ParticleSimulator extends JFrame {
 				g2.setStroke(new BasicStroke(20));
 				g2.setPaint(Color.BLACK);
                 g2.drawLine(x1, y1, x2, y2);
+            }
+        }
+
+        private void drawSprites(Graphics g) {
+            for (ClientHandler c : clients) {
+                g.setColor(c.getColor());
+                g.fillRect(c.getX(), c.getY(), 1, 1);
             }
         }
 
