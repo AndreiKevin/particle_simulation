@@ -129,7 +129,6 @@ public class ParticleSimulator extends JFrame {
                        .append(client.getRedPixelY())
                        .append(";");
             }
-            message.append("\n");
             for (ClientHandler client : clients) {
                 client.sendMessage(message.toString());
             }
@@ -147,8 +146,11 @@ public class ParticleSimulator extends JFrame {
                             .append((int) particle.getX())
                             .append(",")
                             .append((int) particle.getY())
-                            .append(";")
-                            .append("\n");
+                            .append(",")
+                            .append((double) particle.getVelocity())
+                            .append(",")
+                            .append((double) particle.getAngle())
+                            .append(";");
                         client.sendMessage(message.toString());
                     }
                 }
