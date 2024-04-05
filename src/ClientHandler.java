@@ -14,7 +14,6 @@ public class ClientHandler implements Runnable {
     private Color color;
     private boolean active;
     private Semaphore activeSem = new Semaphore(1);
-    private static int redPixelSize = 50;
     private List<Particle> particles;
     private Object particleLock;
     private List<ClientHandler> clients;
@@ -176,10 +175,6 @@ public class ClientHandler implements Runnable {
 
     public int getY() {
         return this.y;
-    }
-
-    public static int getSize() {
-        return redPixelSize;
     }
 
     public int getClientId() {

@@ -86,12 +86,12 @@ public class ParticleSimulator extends JFrame {
             redThread.start();
             ParticleSimulator.clients.add(redClient);
 
-            ClientHandler greenClient = new ClientHandler(Color.GREEN, false, simulatorPanel.getParticles(), particleLock, clients, 2);
+            ClientHandler greenClient = new ClientHandler(Color.RED, false, simulatorPanel.getParticles(), particleLock, clients, 2);
             Thread greenThread = new Thread(greenClient);
             greenThread.start();
             ParticleSimulator.clients.add(greenClient);
 
-            ClientHandler blueClient = new ClientHandler(Color.BLUE, false, simulatorPanel.getParticles(), particleLock, clients, 3);
+            ClientHandler blueClient = new ClientHandler(Color.RED, false, simulatorPanel.getParticles(), particleLock, clients, 3);
             Thread blueThread = new Thread(blueClient);
             blueThread.start();
             ParticleSimulator.clients.add(blueClient);
@@ -463,7 +463,7 @@ public class ParticleSimulator extends JFrame {
             setFocusable(true);
             addKeyListener(new ArrowKeyListener());
             offScreenBuffer = new BufferedImage(canvasWidth, canvasHeight, BufferedImage.TYPE_INT_ARGB);
-            redPixelSprite = new BufferedImage(10, 10, BufferedImage.TYPE_INT_ARGB);
+            redPixelSprite = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
             redPixelSprite.setRGB(0, 0, Color.RED.getRGB());
             setBackground(Color.gray);
 
