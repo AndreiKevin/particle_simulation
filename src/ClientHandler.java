@@ -25,6 +25,8 @@ public class ClientHandler implements Runnable {
         this.particles = particles;
         this.particleLock = particleLock;
         this.clients = clients;
+        this.x = 640;
+        this.y = 360;
     }
 
     @Override
