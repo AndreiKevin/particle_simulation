@@ -96,9 +96,9 @@ public class ClientHandler implements Runnable {
         StringBuilder message = new StringBuilder("C:");
         message.append(clientIdThatMoved)
                 .append(",")
-                .append(this.getX())
+                .append(x)
                 .append(",")
-                .append(this.getY())
+                .append(y)
                 .append(";");
         this.sendMessage(message.toString());
     }
@@ -116,6 +116,7 @@ public class ClientHandler implements Runnable {
             for (ClientHandler client : clients) {
                 if (client.getClientId() != this.clientId && client.isActive()) {
                     // for every client that is not this client, send THEIR positions to THIS client
+                    System.out.println("Initial Sprite pos of " + client.getClientId() + ": sent to other client:" + client.getX() + ", " + client.getY());
                     sendSpriteMessageToThisClient(client.getClientId(), client.getX(), client.getY());
                     // for every client that is not this client, send THIS client's position to OTHER clients
                     sendSpriteMessageToOtherClient(client, this.clientId, this.getX(), this.getY());
@@ -154,6 +155,7 @@ public class ClientHandler implements Runnable {
             this.y = newY;
             
             // notify the other clients about the change
+            System.out.print("Move Update from Client" + ": " + this.clientId + ": " + newX + " " + newY);
             notifySpritePositionsChangedToClients(this.clientId, newX, newY);
         }
     }
