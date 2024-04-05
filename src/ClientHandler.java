@@ -79,13 +79,13 @@ public class ClientHandler implements Runnable {
     }
 
     public void sendSpriteMessageToOtherClient(ClientHandler clientToSendTo, int clientIdThatMoved, int x, int y) {
-        System.out.println("Sending sprite message to OTHER client " + this.clientId + " about client " + clientIdThatMoved + " moving to " + x + ", " + y);
+        System.out.println("Sending sprite message to OTHER client " + clientToSendTo.getClientId() + " about client " + clientIdThatMoved + " moving to " + x + ", " + y);
         StringBuilder message = new StringBuilder("C:");
-        message.append(this.clientId)
+        message.append(clientIdThatMoved)
                 .append(",")
-                .append(this.getX())
+                .append(x)
                 .append(",")
-                .append(this.getY())
+                .append(y)
                 .append(";");
         // using the ClientHandler of another client, we send the message (so that we send it to the other client and not to ourselves)
         clientToSendTo.sendMessage(message.toString());
