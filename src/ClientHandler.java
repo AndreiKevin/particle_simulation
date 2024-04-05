@@ -76,6 +76,7 @@ public class ClientHandler implements Runnable {
     }
 
     public void sendSpriteMessageToOtherClient(ClientHandler clientToSendTo, int clientIdThatMoved, int x, int y) {
+        System.out.println("Sending sprite message to OTHER client " + this.clientId + " about client " + clientIdThatMoved + " moving to " + x + ", " + y);
         StringBuilder message = new StringBuilder("C:");
         message.append(this.clientId)
                 .append(",")
@@ -88,6 +89,7 @@ public class ClientHandler implements Runnable {
     }
 
     public void sendSpriteMessageToThisClient(int clientIdThatMoved, int x, int y) {
+        System.out.println("Sending sprite message to THIS client " + this.clientId + " about client " + clientIdThatMoved + " moving to " + x + ", " + y);
         StringBuilder message = new StringBuilder("C:");
         message.append(clientIdThatMoved)
                 .append(",")
@@ -113,8 +115,8 @@ public class ClientHandler implements Runnable {
         // send sprite positions of other clients to this client
         synchronized (clients) {
             for (ClientHandler client : clients) {
-                if (client.getClientId() != this.clientId) {
-                    sendSpriteMessageToThisClient(this.clientId, client.getX(), client.getY());
+                if (client.getClientId() != this.clientId && client.isActive()) {
+                    sendSpriteMessageToThisClient(client.getClientId(), client.getX(), client.getY());
                 }
             }
         }
