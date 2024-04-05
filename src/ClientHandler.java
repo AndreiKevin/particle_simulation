@@ -111,12 +111,14 @@ public class ClientHandler implements Runnable {
                 sendParticleMessage(particle);
             }
         }
-        // send sprite positions of other clients to this client
         synchronized (clients) {
-            // for every client that is not this client, send their positions
+            // send sprite positions of other clients to this client
             for (ClientHandler client : clients) {
                 if (client.getClientId() != this.clientId && client.isActive()) {
+                    // for every client that is not this client, send THEIR positions to THIS client
                     sendSpriteMessageToThisClient(client.getClientId(), client.getX(), client.getY());
+                    // for every client that is not this client, send THIS client's position to OTHER clients
+                    sendSpriteMessageToOtherClient(client, this.clientId, this.getX(), this.getY());
                 }
             }
         }
