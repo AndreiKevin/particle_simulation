@@ -18,7 +18,6 @@ public class ClientHandler implements Runnable {
     private List<Particle> particles;
     private Object particleLock;
     private List<ClientHandler> clients;
-    private boolean running;
 
     public ClientHandler(Color color, boolean active, List<Particle> particles, Object particleLock, List<ClientHandler> clients, int clientId) {
         this.color = color;
@@ -29,13 +28,11 @@ public class ClientHandler implements Runnable {
         this.x = 640;
         this.y = 360;
         this.clientId = clientId;
-
-        running = true; //Bandaid fix to prevent infinite loop on client dc
     }
 
     @Override
     public void run() {
-        while(running) {
+        while(true) {
             try {
                 activeSem.acquire();
                 if (active) {
@@ -52,7 +49,6 @@ public class ClientHandler implements Runnable {
                         try {
                             System.out.println("Closing socket of client: " + clientId);
                             clientSocket.close();
-                            running = false;
                             ParticleSimulator.removeClient(this); // Remove the disconnected client
                         } catch (IOException e) {
                             e.printStackTrace();
