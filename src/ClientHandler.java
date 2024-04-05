@@ -19,7 +19,7 @@ public class ClientHandler implements Runnable {
     private Object particleLock;
     private List<ClientHandler> clients;
 
-    public ClientHandler(Color color, boolean active, List<Particle> particles, Object particleLock, List<ClientHandler> clients) {
+    public ClientHandler(Color color, boolean active, List<Particle> particles, Object particleLock, List<ClientHandler> clients, int clientId) {
         this.color = color;
         this.active = active;
         this.particles = particles;
@@ -27,6 +27,7 @@ public class ClientHandler implements Runnable {
         this.clients = clients;
         this.x = 640;
         this.y = 360;
+        this.clientId = clientId;
     }
 
     @Override
@@ -109,6 +110,7 @@ public class ClientHandler implements Runnable {
 
     // This function sends all the current particles to the client
     public void sendInitialData() {
+        sendAssignedClientId();
         synchronized (particleLock) {
             for (Particle particle : particles) {
                 sendParticleMessage(particle);
@@ -121,6 +123,15 @@ public class ClientHandler implements Runnable {
                     sendSpriteMessageToThisClient(client.getClientId(), client.getX(), client.getY());
                 }
             }
+        }
+    }
+
+    public void sendAssignedClientId() {
+        try {
+            outputStream.write(("ID:" + clientId + ";").getBytes());
+            outputStream.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -193,9 +204,7 @@ public class ClientHandler implements Runnable {
         return temp;
     }
 
-    public void setActive(int clientId, Socket clientSocket) {
-        // Change to a new clientid but keep the color and position of the old client
-        this.clientId = clientId;
+    public void setActive(Socket clientSocket) {
         // Continue receiving position updates from the new client
         this.clientSocket = clientSocket;
         try {

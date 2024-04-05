@@ -30,7 +30,6 @@ public class ParticleSimulator extends JFrame {
     private static final int SPRITE_SPEED = 1;
     private JComboBox<String> dropdownBox;
     private static List<ClientHandler> clients = new ArrayList<>();
-    private static int nextClientId = 1;
     private int particleID = 1;
     ServerSocket serverSocket;
     private static int clientCount = 0;
@@ -82,17 +81,17 @@ public class ParticleSimulator extends JFrame {
             }).start();
 
             // create all the clients and make them just wait
-            ClientHandler redClient = new ClientHandler(Color.RED, false, simulatorPanel.getParticles(), particleLock, clients);
+            ClientHandler redClient = new ClientHandler(Color.RED, false, simulatorPanel.getParticles(), particleLock, clients, 1);
             Thread redThread = new Thread(redClient);
             redThread.start();
             ParticleSimulator.clients.add(redClient);
 
-            ClientHandler greenClient = new ClientHandler(Color.GREEN, false, simulatorPanel.getParticles(), particleLock, clients);
+            ClientHandler greenClient = new ClientHandler(Color.GREEN, false, simulatorPanel.getParticles(), particleLock, clients, 2);
             Thread greenThread = new Thread(greenClient);
             greenThread.start();
             ParticleSimulator.clients.add(greenClient);
 
-            ClientHandler blueClient = new ClientHandler(Color.BLUE, false, simulatorPanel.getParticles(), particleLock, clients);
+            ClientHandler blueClient = new ClientHandler(Color.BLUE, false, simulatorPanel.getParticles(), particleLock, clients, 3);
             Thread blueThread = new Thread(blueClient);
             blueThread.start();
             ParticleSimulator.clients.add(blueClient);
@@ -108,8 +107,7 @@ public class ParticleSimulator extends JFrame {
                     
                         for (ClientHandler client : clients){
                             if (!client.isActive()) {
-                                client.setActive(nextClientId, clientSocket);
-                                nextClientId++;
+                                client.setActive(clientSocket);
                                 try {
                                     clientCountSem.acquire();
                                     ParticleSimulator.clientCount++; // consider synchronizing this
