@@ -100,12 +100,7 @@ public class ClientHandler implements Runnable {
                 .append(",")
                 .append(this.getY())
                 .append(";");
-        // using the ClientHandler of another client, we send the message (so that we send it to the other client and not to ourselves)
-        for (ClientHandler client : clients) {
-            if (client.getClientId() == clientIdThatMoved) {
-                client.sendMessage(message.toString());
-            }
-        }
+        this.sendMessage(message.toString());
     }
 
     // This function sends all the current particles to the client
@@ -118,6 +113,7 @@ public class ClientHandler implements Runnable {
         }
         // send sprite positions of other clients to this client
         synchronized (clients) {
+            // for every client that is not this client, send their positions
             for (ClientHandler client : clients) {
                 if (client.getClientId() != this.clientId && client.isActive()) {
                     sendSpriteMessageToThisClient(client.getClientId(), client.getX(), client.getY());
